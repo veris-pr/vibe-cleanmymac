@@ -64,11 +64,18 @@ class SettingsViewModel: ObservableObject {
         homebrewInstallError = nil
 
         do {
-            try await AdminAuthManager.shared.withAdmin(reason: "Installing Homebrew requires creating a system directory.") { password in
-                try await self.deps.installHomebrew(password: password)
+            try await deps.installHomebrew()
+            // Poll until the user completes the install in Terminal
+            for _ in 0..<60 {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                if await deps.isHomebrewInstalled {
+                    hasHomebrew = true
+                    await refresh()
+                    isInstallingHomebrew = false
+                    return
+                }
             }
-            hasHomebrew = true
-            await refresh()
+            homebrewInstallError = "Homebrew not detected. Complete the install in Terminal, then refresh."
         } catch {
             homebrewInstallError = error.localizedDescription
         }

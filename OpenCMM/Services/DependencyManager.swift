@@ -149,41 +149,33 @@ actor DependencyManager {
 
     // MARK: - Homebrew Installation
 
-    #if arch(arm64)
-    private static let brewPrefix = "/opt/homebrew"
-    #else
-    private static let brewPrefix = "/usr/local/Homebrew"
-    #endif
-
-    /// Install Homebrew itself via tarball extraction.
-    /// Only the directory creation needs admin — brew itself runs as current user.
-    func installHomebrew(password: String) async throws {
+    /// Install Homebrew using the official installer from https://brew.sh.
+    /// Opens Terminal.app with the official install script so the user has
+    /// full visibility and control. The installer handles directory creation,
+    /// permissions, and platform-specific setup.
+    func installHomebrew() async throws {
         guard !isHomebrewInstalled else { return }
 
-        let prefix = Self.brewPrefix
-        let user = NSUserName()
+        let scriptPath = "/tmp/opencmm-install-homebrew.command"
+        let script = """
+        #!/bin/bash
+        clear
+        echo "════════════════════════════════════════════════════════════"
+        echo "  OpenCMM — Installing Homebrew (official installer)"
+        echo "════════════════════════════════════════════════════════════"
+        echo ""
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        echo ""
+        echo "✅ Done. Return to OpenCMM — Homebrew will be detected automatically."
+        echo "   You can close this terminal window."
+        echo ""
+        read -n 1 -s -r -p "Press any key to close..."
+        """
+        try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+        try ShellExecutor.shell("chmod +x \(ShellExecutor.quote(scriptPath))")
 
-        // Create prefix directory owned by current user (only step needing admin)
-        try ShellExecutor.shellWithSudo(
-            "mkdir -p '\(prefix)' && chown -R \(user):admin '\(prefix)'",
-            password: password
-        )
-
-        // Download and extract Homebrew (no admin — user owns directory)
-        try ShellExecutor.shell(
-            "curl -fsSL -o /tmp/brew-install.tar.gz https://github.com/Homebrew/brew/tarball/master && tar xzf /tmp/brew-install.tar.gz --strip-components 1 -C '\(prefix)' && rm -f /tmp/brew-install.tar.gz"
-        )
-
-        #if arch(x86_64)
-        // Intel: create symlink so brew is on standard PATH
-        try ShellExecutor.shellWithSudo(
-            "ln -sf '\(prefix)/bin/brew' '/usr/local/bin/brew'",
-            password: password
-        )
-        #endif
-
-        // Initialize Homebrew (runs as user, NOT root)
-        try ShellExecutor.shell("'\(prefix)/bin/brew' update --force --quiet")
+        // .command files open in Terminal.app automatically
+        try ShellExecutor.shell("open \(ShellExecutor.quote(scriptPath))")
     }
 
     // MARK: - Installation via Homebrew
