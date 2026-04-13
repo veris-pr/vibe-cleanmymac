@@ -73,6 +73,12 @@ class CleanViewModel: ObservableObject {
         let selectedItems = scanResults.filter(\.isSelected).flatMap { $0.items.filter(\.isSelected) }
         let result = await service.clean(items: selectedItems)
         lastCleanedSize = result.freedBytes
+
+        if !result.skippedBrowsers.isEmpty {
+            let names = result.skippedBrowsers.joined(separator: ", ")
+            errorMessage = "Skipped \(names) cache — quit the browser first, then rescan."
+        }
+
         scanResults = []
         scanComplete = false
         isCleaning = false

@@ -1,7 +1,18 @@
 import Foundation
+import AppKit
 import os
 
 private let logger = Logger(subsystem: "com.opencmm.app", category: "CleaningService")
+
+/// Maps browser cache names to their bundle identifiers for running-app detection.
+private let browserBundleIds: [String: String] = [
+    "Safari Cache": "com.apple.Safari",
+    "Chrome Cache": "com.google.Chrome",
+    "Firefox Cache": "org.mozilla.firefox",
+    "Edge Cache": "com.microsoft.edgemac",
+    "Brave Cache": "com.brave.Browser",
+    "Arc Cache": "company.thebrowser.Browser",
+]
 
 actor CleaningService {
     private let home = FileUtils.homeDirectory()
@@ -20,20 +31,36 @@ actor CleaningService {
         return results.filter { !$0.items.isEmpty }
     }
 
-    func clean(items: [CleanableItem]) async -> (cleaned: Int, freedBytes: Int64) {
+    func clean(items: [CleanableItem]) async -> (cleaned: Int, freedBytes: Int64, skippedBrowsers: [String]) {
         var cleaned = 0
         var freed: Int64 = 0
+        var skippedBrowsers: [String] = []
+
         for item in items where item.isSelected {
+            // Check if this is a browser cache with the browser still running
+            if item.category == .browserCache,
+               let bundleId = browserBundleIds[item.name],
+               isBrowserRunning(bundleId: bundleId) {
+                let browserName = item.name.replacingOccurrences(of: " Cache", with: "")
+                skippedBrowsers.append(browserName)
+                logger.info("Skipped \(item.name) — \(browserName) is running")
+                continue
+            }
+
             do {
                 try FileUtils.moveToTrash(item.path)
                 cleaned += 1
                 freed += item.size
             } catch {
-                // Log but continue with other items
                 logger.error("Failed to clean \(item.path): \(error.localizedDescription)")
             }
         }
-        return (cleaned, freed)
+        return (cleaned, freed, skippedBrowsers)
+    }
+
+    /// Check if a browser is currently running by its bundle identifier.
+    nonisolated private func isBrowserRunning(bundleId: String) -> Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).isEmpty
     }
 
     // MARK: - Scan Helpers
