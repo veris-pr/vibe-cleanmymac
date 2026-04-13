@@ -156,20 +156,20 @@ actor DependencyManager {
     #endif
 
     /// Install Homebrew itself via tarball extraction.
-    /// Password is collected by the caller's UI via AdminAuthManager.
+    /// Only the directory creation needs admin — brew itself runs as current user.
     func installHomebrew(password: String) async throws {
         guard !isHomebrewInstalled else { return }
 
         let prefix = Self.brewPrefix
         let user = NSUserName()
 
-        // Create prefix directory with admin privileges
+        // Create prefix directory owned by current user (only step needing admin)
         try ShellExecutor.shellWithSudo(
             "mkdir -p '\(prefix)' && chown -R \(user):admin '\(prefix)'",
             password: password
         )
 
-        // Download and extract Homebrew (no admin needed — user owns directory)
+        // Download and extract Homebrew (no admin — user owns directory)
         try ShellExecutor.shell(
             "curl -fsSL -o /tmp/brew-install.tar.gz https://github.com/Homebrew/brew/tarball/master && tar xzf /tmp/brew-install.tar.gz --strip-components 1 -C '\(prefix)' && rm -f /tmp/brew-install.tar.gz"
         )
@@ -182,35 +182,27 @@ actor DependencyManager {
         )
         #endif
 
-        // Initialize Homebrew
+        // Initialize Homebrew (runs as user, NOT root)
         try ShellExecutor.shell("'\(prefix)/bin/brew' update --force --quiet")
     }
 
     // MARK: - Installation via Homebrew
 
-    func install(_ tool: ToolInfo, password: String? = nil) async throws {
+    /// Install a tool via Homebrew. Brew runs as the current user — never with sudo.
+    func install(_ tool: ToolInfo) async throws {
         guard isHomebrewInstalled else {
             throw DependencyError.homebrewRequired
         }
 
         let current = status(for: tool)
 
-        // Already managed by us — nothing to do
         if current.source == .managedByUs { return }
-
-        // Installed via Homebrew by user — use as-is, don't claim ownership
         if current.source == .homebrew { return }
-
-        // Installed directly (manual/pkg) — don't conflict, just use it
         if current.source == .direct { return }
 
-        // Cask installs (.pkg) require admin privileges
+        // All brew installs run as user — brew handles its own privilege escalation for casks
         if tool.isCask {
-            guard let pw = password else {
-                throw DependencyError.installFailed("Admin password required for cask installs")
-            }
-            let brewPath = findExecutable("brew") ?? "brew"
-            try ShellExecutor.shellWithSudo("\(brewPath) install --cask \(tool.brewPackage)", password: pw)
+            try ShellExecutor.shell("brew install --cask \(tool.brewPackage)")
         } else {
             try ShellExecutor.shell("brew install \(tool.brewPackage)")
         }

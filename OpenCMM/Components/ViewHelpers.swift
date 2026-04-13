@@ -188,7 +188,7 @@ struct DependencyBanner: View {
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.muted)
                     if requiresAdmin {
-                        Text("Requires Homebrew · admin password will be requested")
+                        Text("Requires admin password to create install directory")
                             .font(Theme.Font.caption)
                             .foregroundStyle(Theme.Colors.secondary)
                     }

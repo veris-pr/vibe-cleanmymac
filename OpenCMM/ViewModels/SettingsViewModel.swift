@@ -87,13 +87,7 @@ class SettingsViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            if info.isCask {
-                try await AdminAuthManager.shared.withAdmin(reason: "Installing \(info.name) requires admin privileges.") { password in
-                    try await self.deps.install(info, password: password)
-                }
-            } else {
-                try await deps.install(info)
-            }
+            try await deps.install(info)
             let status = await deps.status(for: info)
             tools[idx].isInstalled = true
             tools[idx].version = status.version

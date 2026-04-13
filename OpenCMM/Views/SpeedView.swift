@@ -40,7 +40,6 @@ struct SpeedView: View {
                                 isInstalled: false,
                                 isInstalling: viewModel.isMactopInstalling,
                                 installError: viewModel.mactopInstallError,
-                                requiresAdmin: true,
                                 installAction: { Task { await viewModel.installMactop() } }
                             )
                             .padding(.horizontal, Theme.Spacing.lg)
