@@ -31,32 +31,14 @@ struct SmartCareView: View {
     private var welcomeView: some View {
         VStack {
             Spacer()
-            VStack(spacing: Theme.Spacing.lg) {
-                EmptyStateView(
-                    icon: "square.grid.2x2",
-                    message: "System Scan",
-                    detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
-                    buttonTitle: nil,
-                    action: {}
-                )
-
-                scanModeToggle
-
-                Button(action: { viewModel.startScan() }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 11))
-                        Text("Start \(viewModel.scanMode.rawValue) Scan")
-                    }
-                    .font(Theme.Font.bodyMedium)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 10)
-                    .background(Color.primary.opacity(0.85))
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
-                }
-                .buttonStyle(.plain)
-            }
+            EmptyStateView(
+                icon: "square.grid.2x2",
+                message: "System Scan",
+                detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
+                buttonTitle: "Start Scan",
+                buttonIcon: "play.fill",
+                action: { viewModel.startScan() }
+            )
             Spacer()
         }
     }
@@ -117,18 +99,11 @@ struct SmartCareView: View {
                             .foregroundStyle(Theme.Colors.success)
                     }
 
-                    // Last scanned date + mode
+                    // Last scanned date
                     if let lastDate = scanStore.lastScanDate {
-                        HStack(spacing: 4) {
-                            Text("Last scanned \(Formatters.relativeDate(lastDate))")
-                            if let mode = scanStore.lastScanMode {
-                                Text("·")
-                                Text(mode.rawValue)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                        Text("Last scanned \(Formatters.relativeDate(lastDate))")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
                     }
                 }
                 .padding(.top, Theme.Spacing.lg)
@@ -143,37 +118,13 @@ struct SmartCareView: View {
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
 
-                // Scan again with mode toggle
-                VStack(spacing: Theme.Spacing.sm) {
-                    scanModeToggle
-
-                    Button("Scan Again") { viewModel.startScan() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.regular)
-                }
-                .padding(.bottom, Theme.Spacing.xl)
+                // Scan again
+                Button("Scan Again") { viewModel.startScan() }
+                    .font(Theme.Font.bodyMedium)
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .padding(.bottom, Theme.Spacing.xl)
             }
-        }
-    }
-
-    // MARK: - Shared Components
-
-    private var scanModeToggle: some View {
-        HStack(spacing: Theme.Spacing.md) {
-            Picker("", selection: $viewModel.scanMode) {
-                ForEach(ScanMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 160)
-
-            Text(viewModel.scanMode == .quick
-                 ? "Fast overview with partial analysis"
-                 : "Thorough scan with full file hashing")
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.muted)
         }
     }
 }

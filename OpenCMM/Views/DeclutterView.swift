@@ -75,42 +75,14 @@ struct DeclutterView: View {
                 .padding(.top, Theme.Spacing.md)
 
                 Spacer()
-                VStack(spacing: Theme.Spacing.lg) {
-                    EmptyStateView(
-                        icon: "doc.on.doc",
-                        message: "Find clutter",
-                        detail: "Remove duplicates, discover large forgotten files, and reclaim wasted storage space.",
-                        buttonTitle: nil,
-                        action: {}
-                    )
-
-                    HStack(spacing: Theme.Spacing.md) {
-                        Picker("", selection: $viewModel.scanMode) {
-                            ForEach(ScanMode.allCases, id: \.self) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 160)
-
-                        Text(viewModel.scanMode == .quick
-                             ? "Partial hashing — faster"
-                             : "Full file hashing — thorough")
-                            .font(Theme.Font.caption)
-                            .foregroundStyle(Theme.Colors.muted)
-                    }
-
-                    Button(action: { Task { await viewModel.scan() } }) {
-                        Text("Scan")
-                            .font(Theme.Font.bodyMedium)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 10)
-                            .background(Color.primary.opacity(0.85))
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
-                    }
-                    .buttonStyle(.plain)
-                }
+                EmptyStateView(
+                    icon: "doc.on.doc",
+                    message: "Find clutter",
+                    detail: "Deep scan for duplicates, large forgotten files, and wasted storage. Uses full file hashing for accurate results.",
+                    buttonTitle: "Deep Scan",
+                    buttonIcon: "magnifyingglass",
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             }
         }

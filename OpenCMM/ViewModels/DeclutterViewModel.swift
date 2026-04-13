@@ -17,7 +17,6 @@ class DeclutterViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showConfirmation = false
     @Published var largeSortOrder: LargeSortOrder = .size
-    @Published var scanMode: ScanMode = .deep
 
     var scanStore: ScanStore?
 
@@ -67,8 +66,7 @@ class DeclutterViewModel: ObservableObject {
         isScanning = true
         scanComplete = false
         errorMessage = nil
-        let isQuick = scanMode == .quick
-        async let dupes = service.findDuplicates(quickScan: isQuick)
+        async let dupes = service.findDuplicates(quickScan: false)
         async let large = service.findLargeFiles()
         async let similar = czkawkaService.findSimilarImages()
         async let temp = czkawkaService.findTempFiles()

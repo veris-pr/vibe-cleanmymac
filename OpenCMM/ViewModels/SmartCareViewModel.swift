@@ -6,7 +6,6 @@ class SmartCareViewModel: ObservableObject {
     @Published var progress: Double = 0
     @Published var currentStep: String = ""
     @Published var errorMessage: String?
-    @Published var scanMode: ScanMode = .quick
 
     var scanStore: ScanStore?
 
@@ -21,8 +20,7 @@ class SmartCareViewModel: ObservableObject {
 
     func startScan() {
         scanTask?.cancel()
-        let mode = scanMode
-        scanTask = Task { await scan(mode: mode) }
+        scanTask = Task { await scan() }
     }
 
     func cancelScan() {
@@ -32,14 +30,12 @@ class SmartCareViewModel: ObservableObject {
         currentStep = ""
     }
 
-    private func scan(mode: ScanMode) async {
+    private func scan() async {
         isScanning = true
         progress = 0
-        currentStep = "Starting \(mode.rawValue.lowercased()) scan..."
+        currentStep = "Starting scan..."
 
-        let isQuick = mode == .quick
-
-        // Run all 5 scans concurrently using structured concurrency
+        // Run all 5 scans concurrently — Overview always uses quick mode
         var collectedSummaries: [ModuleScanSummary] = []
 
         await withTaskGroup(of: (Int, ModuleScanSummary).self) { group in
@@ -73,7 +69,7 @@ class SmartCareViewModel: ObservableObject {
             }
 
             group.addTask { [duplicateService] in
-                let groups = await duplicateService.findDuplicates(quickScan: isQuick)
+                let groups = await duplicateService.findDuplicates(quickScan: true)
                 let wastedSpace = groups.reduce(0) { $0 + $1.wastedSpace }
                 let issues = groups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
                 return (4, ModuleScanSummary(module: .declutter, itemCount: groups.count, totalSize: wastedSpace, issues: Array(issues), timestamp: Date()))
@@ -101,7 +97,7 @@ class SmartCareViewModel: ObservableObject {
         let score = await systemInfoService.healthScore()
 
         // Persist to shared ScanStore
-        scanStore?.updateAll(collectedSummaries, healthScore: score, scanMode: mode)
+        scanStore?.updateAll(collectedSummaries, healthScore: score, scanMode: .quick)
 
         isScanning = false
         currentStep = ""
