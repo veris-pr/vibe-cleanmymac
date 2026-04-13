@@ -17,6 +17,7 @@ class AppState: ObservableObject {
     let updateVM = UpdateViewModel()
     let declutterVM = DeclutterViewModel()
     let spaceLensVM = SpaceLensViewModel()
+    let uninstallVM = UninstallViewModel()
 
     init() {
         self.hasCompletedSetup = UserDefaults.standard.bool(forKey: Self.hasCompletedSetupKey)
@@ -42,6 +43,7 @@ enum Module: String, CaseIterable, Identifiable {
     case protect = "Security"
     case speed = "Boost"
     case update = "Updates"
+    case uninstall = "Uninstaller"
     case declutter = "Duplicates"
     case spaceLens = "Disk Map"
     case settings = "Settings"
@@ -55,6 +57,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .protect: return "shield"
         case .speed: return "gauge.with.needle"
         case .update: return "arrow.down.circle"
+        case .uninstall: return "trash.square"
         case .declutter: return "doc.on.doc"
         case .spaceLens: return "circle.grid.cross"
         case .settings: return "gearshape"

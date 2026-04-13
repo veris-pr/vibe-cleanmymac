@@ -26,6 +26,8 @@ struct MainView: View {
             SpeedView(viewModel: appState.speedVM)
         case .update:
             UpdateView(viewModel: appState.updateVM)
+        case .uninstall:
+            UninstallView(viewModel: appState.uninstallVM)
         case .declutter:
             DeclutterView(viewModel: appState.declutterVM)
         case .spaceLens:
