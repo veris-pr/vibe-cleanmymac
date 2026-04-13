@@ -166,10 +166,13 @@ actor DependencyManager {
         // Installed directly (manual/pkg) — don't conflict, just use it
         if current.source == .direct { return }
 
-        let cmd = tool.isCask
-            ? "brew install --cask \(tool.brewPackage)"
-            : "brew install \(tool.brewPackage)"
-        try ShellExecutor.shell(cmd)
+        // Cask installs (.pkg) may require admin privileges
+        if tool.isCask {
+            let brewPath = findExecutable("brew") ?? "brew"
+            try ShellExecutor.shellWithAdmin("\(brewPath) install --cask \(tool.brewPackage)")
+        } else {
+            try ShellExecutor.shell("brew install \(tool.brewPackage)")
+        }
 
         // Pin to prevent auto-upgrade
         if !tool.isCask {

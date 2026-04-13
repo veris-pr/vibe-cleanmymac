@@ -102,81 +102,119 @@ struct SettingsView: View {
     }
 
     private func settingsToolRow(_ tool: SettingsViewModel.ToolRow) -> some View {
-        HStack(spacing: Theme.Spacing.md) {
-            // Status indicator
-            Circle()
-                .fill(tool.isInstalled ? Theme.Colors.success : Theme.Colors.muted.opacity(0.3))
-                .frame(width: 8, height: 8)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Theme.Spacing.md) {
+                // Status indicator
+                Circle()
+                    .fill(tool.isInstalled ? Theme.Colors.success : Theme.Colors.muted.opacity(0.3))
+                    .frame(width: 8, height: 8)
 
-            // Info
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(tool.name)
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                    Text(tool.module)
-                        .badgeStyle()
-                    sourceBadge(for: tool.source)
-                }
-                HStack(spacing: 4) {
-                    Text(tool.description)
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted)
-                    Text("· tested v\(tool.testedVersion)")
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted.opacity(0.6))
-                }
-            }
-
-            Spacer()
-
-            if tool.isInstalled {
-                if let version = tool.version {
-                    Text(version)
-                        .font(Theme.Font.monoSmall)
-                        .foregroundStyle(Theme.Colors.muted)
-                        .lineLimit(1)
-                        .frame(maxWidth: 140, alignment: .trailing)
+                // Info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(tool.name)
+                            .font(Theme.Font.bodyMedium)
+                            .foregroundStyle(Theme.Colors.foreground)
+                        Text(tool.module)
+                            .badgeStyle()
+                        sourceBadge(for: tool.source)
+                    }
+                    HStack(spacing: 4) {
+                        Text(tool.description)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                        Text("· tested v\(tool.testedVersion)")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted.opacity(0.6))
+                    }
                 }
 
-                if tool.managedByUs {
-                    if tool.isUninstalling {
+                Spacer()
+
+                if tool.isInstalled {
+                    if let version = tool.version {
+                        Text(version)
+                            .font(Theme.Font.monoSmall)
+                            .foregroundStyle(Theme.Colors.muted)
+                            .lineLimit(1)
+                            .frame(maxWidth: 140, alignment: .trailing)
+                    }
+
+                    if tool.managedByUs {
+                        if tool.isUninstalling {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Button("Uninstall") {
+                                Task { await viewModel.uninstall(tool.id) }
+                            }
+                            .font(Theme.Font.caption)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                } else {
+                    if tool.isInstalling {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Button("Uninstall") {
-                            Task { await viewModel.uninstall(tool.id) }
+                        Button("Install") {
+                            Task { await viewModel.install(tool.id) }
                         }
-                        .font(Theme.Font.caption)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 5)
+                        .background(viewModel.hasHomebrew ? Color.primary.opacity(0.85) : Color.primary.opacity(0.3))
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                        .buttonStyle(.plain)
+                        .disabled(!viewModel.hasHomebrew)
+                        .help(tool.isCask
+                              ? "Installs via Homebrew cask (may require admin password)"
+                              : "Installs via Homebrew")
                     }
-                }
-            } else {
-                if tool.isInstalling {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Button("Install") {
-                        Task { await viewModel.install(tool.id) }
-                    }
-                    .font(Theme.Font.bodyMedium)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 5)
-                    .background(viewModel.hasHomebrew ? Color.primary.opacity(0.85) : Color.primary.opacity(0.3))
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
-                    .buttonStyle(.plain)
-                    .disabled(!viewModel.hasHomebrew)
                 }
             }
+            .padding(Theme.Spacing.md)
+
+            // Status / error feedback
+            if let status = tool.statusText {
+                HStack(spacing: 4) {
+                    if tool.isInstalling || tool.isUninstalling {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.Colors.success)
+                    }
+                    Text(status)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.bottom, Theme.Spacing.sm)
+            }
+
+            if let error = tool.error {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.destructive)
+                    Text(error)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.destructive)
+                        .lineLimit(2)
+                }
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.bottom, Theme.Spacing.sm)
+            }
         }
-        .padding(Theme.Spacing.md)
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.md)
-                .stroke(Theme.Colors.border, lineWidth: 1)
+                .stroke(tool.error != nil ? Theme.Colors.destructive.opacity(0.3) : Theme.Colors.border, lineWidth: 1)
         )
     }
 

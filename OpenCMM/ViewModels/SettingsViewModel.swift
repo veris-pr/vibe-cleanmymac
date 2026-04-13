@@ -8,11 +8,14 @@ class SettingsViewModel: ObservableObject {
         let description: String
         let module: String
         let testedVersion: String
+        let isCask: Bool
         var isInstalled: Bool
         var version: String?
         var source: DependencyManager.InstallSource
         var isInstalling: Bool = false
         var isUninstalling: Bool = false
+        var statusText: String?
+        var error: String?
 
         var managedByUs: Bool { source == .managedByUs }
 
@@ -22,6 +25,7 @@ class SettingsViewModel: ObservableObject {
             self.description = status.info.description
             self.module = module
             self.testedVersion = status.info.testedVersion
+            self.isCask = status.info.isCask
             self.isInstalled = status.isInstalled
             self.version = status.version
             self.source = status.source
@@ -57,6 +61,10 @@ class SettingsViewModel: ObservableObject {
         guard let info else { return }
 
         tools[idx].isInstalling = true
+        tools[idx].error = nil
+        tools[idx].statusText = info.isCask
+            ? "Installing via Homebrew (admin password required)..."
+            : "Installing via Homebrew..."
         errorMessage = nil
 
         do {
@@ -65,8 +73,19 @@ class SettingsViewModel: ObservableObject {
             tools[idx].isInstalled = true
             tools[idx].version = status.version
             tools[idx].source = status.source
+            tools[idx].statusText = "Installed successfully"
+
+            // Clear success message after a moment
+            let capturedId = id
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                if let i = tools.firstIndex(where: { $0.id == capturedId }) {
+                    tools[i].statusText = nil
+                }
+            }
         } catch {
-            errorMessage = "\(info.name): \(error.localizedDescription)"
+            tools[idx].error = error.localizedDescription
+            tools[idx].statusText = nil
         }
         tools[idx].isInstalling = false
     }
@@ -77,6 +96,8 @@ class SettingsViewModel: ObservableObject {
         guard let info else { return }
 
         tools[idx].isUninstalling = true
+        tools[idx].error = nil
+        tools[idx].statusText = "Removing..."
         errorMessage = nil
 
         do {
@@ -84,8 +105,10 @@ class SettingsViewModel: ObservableObject {
             tools[idx].isInstalled = false
             tools[idx].version = nil
             tools[idx].source = .notInstalled
+            tools[idx].statusText = nil
         } catch {
-            errorMessage = "\(info.name): \(error.localizedDescription)"
+            tools[idx].error = error.localizedDescription
+            tools[idx].statusText = nil
         }
         tools[idx].isUninstalling = false
     }
