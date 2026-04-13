@@ -27,10 +27,9 @@ actor DependencyManager {
         static let osquery = ToolInfo(id: "osquery", name: "osquery", description: "SQL-powered system auditing", brewPackage: "osquery", isCask: true, testedVersion: "5.22.1")
         static let mas = ToolInfo(id: "mas", name: "mas", description: "Mac App Store CLI", brewPackage: "mas", isCask: false, testedVersion: "6.0.1")
         static let czkawka = ToolInfo(id: "czkawka", name: "czkawka", description: "Similar images, videos & music finder", brewPackage: "czkawka", isCask: false, testedVersion: "11.0.1")
-        static let gdu = ToolInfo(id: "gdu", name: "gdu", description: "Fast disk usage analyzer", brewPackage: "gdu", isCask: false, testedVersion: "5.35.0")
         static let macmon = ToolInfo(id: "macmon", name: "macmon", description: "Sudoless Apple Silicon performance monitor", brewPackage: "macmon", isCask: false, testedVersion: "0.7.0")
 
-        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mas, .czkawka, .gdu, .macmon]
+        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mas, .czkawka, .macmon]
     }
 
     enum InstallSource: String {
@@ -89,7 +88,6 @@ actor DependencyManager {
         case "clamav": return "clamscan"
         case "osquery": return "osqueryi"
         case "czkawka": return "czkawka_cli"
-        case "gdu": return "gdu-go"
         default: return tool.id
         }
     }

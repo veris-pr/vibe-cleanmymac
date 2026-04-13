@@ -13,7 +13,7 @@ struct SpaceLensView: View {
 
             Divider()
 
-            if viewModel.isScanning {
+            if viewModel.isScanning && viewModel.currentNode == nil {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
                     ProgressView()
@@ -27,63 +27,58 @@ struct SpaceLensView: View {
                         .controlSize(.small)
                 }
                 Spacer()
-            } else if let root = viewModel.rootNode {
-                // Dependency banner
-                DependencyBanner(
-                    toolName: "gdu",
-                    description: "Fast disk usage analyzer for detailed scanning.",
-                    isInstalled: viewModel.isGduInstalled,
-                    isInstalling: viewModel.isInstallingGdu,
-                    installError: viewModel.installError,
-                    installAction: { Task { await viewModel.installGdu() } }
-                )
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.md)
+            } else if let current = viewModel.currentNode {
+                // Breadcrumb navigation
+                breadcrumbBar
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.sm)
 
-                // Total size header
+                Divider()
+
+                // Header with total size
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(root.name)
+                        Text(current.name)
                             .font(Theme.Font.heading)
                             .foregroundStyle(Theme.Colors.foreground)
-                        Text(Formatters.fileSize(root.size))
+                        Text(Formatters.fileSize(current.size))
                             .font(Theme.Font.mono)
                             .foregroundStyle(Theme.Colors.secondary)
                     }
                     Spacer()
+                    if viewModel.isScanning {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                     Button("Refresh") { viewModel.startScan() }
                         .font(Theme.Font.bodyMedium)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.vertical, Theme.Spacing.md)
+                .padding(.vertical, Theme.Spacing.sm)
 
-                // Directory tree
+                // Directory listing
                 List {
-                    ForEach(root.children.prefix(50)) { node in
-                        SpaceLensRow(node: node, parentSize: root.size, depth: 0)
+                    ForEach(current.children) { node in
+                        SpaceLensRow(
+                            node: node,
+                            parentSize: current.size,
+                            onTap: {
+                                if node.isDirectory {
+                                    viewModel.expandDirectory(node)
+                                }
+                            }
+                        )
                     }
                 }
                 .listStyle(.inset)
             } else {
-                // Dependency banner before scan
-                DependencyBanner(
-                    toolName: "gdu",
-                    description: "Fast disk usage analyzer. Without it, a slower native scanner is used.",
-                    isInstalled: viewModel.isGduInstalled,
-                    isInstalling: viewModel.isInstallingGdu,
-                    installError: viewModel.installError,
-                    installAction: { Task { await viewModel.installGdu() } }
-                )
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.md)
-
                 Spacer()
                 EmptyStateView(
                     icon: "circle.grid.cross",
                     message: "Analyze disk usage",
-                    detail: "Create a visual map of your hard drive to see which folders and files are taking up the most space.",
+                    detail: "Scan your home folder to see which directories and files are taking up the most space. Click any folder to explore deeper.",
                     buttonTitle: "Start Scan",
                     action: { viewModel.startScan() }
                 )
@@ -91,75 +86,88 @@ struct SpaceLensView: View {
             }
         }
         .background(Theme.Colors.background)
-        .task { await viewModel.checkDependencies() }
+    }
+
+    // MARK: - Breadcrumbs
+
+    private var breadcrumbBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(Array(viewModel.breadcrumbs.enumerated()), id: \.offset) { index, crumb in
+                    if index > 0 {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.Colors.muted)
+                    }
+
+                    Button {
+                        viewModel.navigateTo(index: index)
+                    } label: {
+                        Text(crumb.name)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(index == viewModel.breadcrumbs.count - 1 ? Theme.Colors.foreground : Theme.Colors.secondary)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
+
+// MARK: - Row
 
 struct SpaceLensRow: View {
     let node: DiskNode
     let parentSize: Int64
-    let depth: Int
-    @State private var isExpanded = false
+    let onTap: () -> Void
 
-    private var barWidth: CGFloat {
+    private var barFraction: CGFloat {
         let pct = node.percentage(of: parentSize)
-        return CGFloat(min(max(pct, 2), 100))
+        return CGFloat(min(max(pct, 1), 100)) / 100
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: { if node.isDirectory && !node.children.isEmpty { isExpanded.toggle() } }) {
-                HStack(spacing: Theme.Spacing.sm) {
-                    if node.isDirectory && !node.children.isEmpty {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10))
+        Button(action: onTap) {
+            HStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: node.isDirectory ? "folder.fill" : "doc")
+                    .font(.system(size: 14))
+                    .foregroundStyle(node.isDirectory ? Theme.Colors.secondary : Theme.Colors.muted)
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text(node.name)
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.foreground)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(Formatters.fileSize(node.size))
+                            .font(Theme.Font.monoSmall)
+                            .foregroundStyle(Theme.Colors.secondary)
+                        Text(String(format: "%.1f%%", node.percentage(of: parentSize)))
+                            .font(Theme.Font.caption)
                             .foregroundStyle(Theme.Colors.muted)
-                            .frame(width: 14)
-                    } else {
-                        Spacer().frame(width: 14)
+                            .frame(width: 48, alignment: .trailing)
                     }
 
-                    Image(systemName: node.isDirectory ? "folder" : "doc")
-                        .font(.system(size: 12))
-                        .foregroundStyle(node.isDirectory ? Theme.Colors.secondary : Theme.Colors.muted)
-                        .frame(width: 18)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack {
-                            Text(node.name)
-                                .font(Theme.Font.body)
-                                .foregroundStyle(Theme.Colors.foreground)
-                                .lineLimit(1)
-                            Spacer()
-                            Text(Formatters.fileSize(node.size))
-                                .font(Theme.Font.monoSmall)
-                                .foregroundStyle(Theme.Colors.secondary)
-                            Text(String(format: "%.1f%%", node.percentage(of: parentSize)))
-                                .font(Theme.Font.caption)
-                                .foregroundStyle(Theme.Colors.muted)
-                                .frame(width: 48, alignment: .trailing)
-                        }
-
-                        // Size bar
-                        GeometryReader { geo in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Theme.Colors.secondary.opacity(0.3))
-                                .frame(width: geo.size.width * barWidth / 100, height: 3)
-                        }
-                        .frame(height: 3)
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(node.isDirectory ? Theme.Colors.secondary.opacity(0.4) : Theme.Colors.muted.opacity(0.3))
+                            .frame(width: geo.size.width * barFraction, height: 3)
                     }
+                    .frame(height: 3)
                 }
-                .padding(.leading, CGFloat(depth) * 16)
-            }
-            .buttonStyle(.plain)
 
-            if isExpanded {
-                ForEach(node.children.prefix(20)) { child in
-                    SpaceLensRow(node: child, parentSize: node.size, depth: depth + 1)
-                        .padding(.top, 2)
+                if node.isDirectory {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.muted)
                 }
             }
+            .padding(.vertical, 2)
         }
+        .buttonStyle(.plain)
         .contextMenu {
             Button("Reveal in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: node.path)])

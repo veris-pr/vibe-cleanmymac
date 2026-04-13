@@ -41,7 +41,7 @@ class SetupViewModel: ObservableObject {
             (.mas,     "Updates",    "arrow.down.circle"),
             (.fclones, "Duplicates", "doc.on.doc"),
             (.czkawka, "Duplicates", "photo.on.rectangle"),
-            (.gdu,     "Disk Map",   "circle.grid.cross"),
+            (.macmon,  "Boost",      "gauge.with.needle"),
         ]
 
         var result: [SetupTool] = []

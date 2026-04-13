@@ -1,6 +1,6 @@
 import Foundation
 
-/// Tree node for disk usage visualization (gdu integration).
+/// Tree node for disk usage visualization.
 struct DiskNode: Identifiable {
     let id = UUID()
     let name: String

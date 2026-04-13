@@ -47,7 +47,7 @@ class SettingsViewModel: ObservableObject {
         "mas": "Updates",
         "fclones": "Duplicates",
         "czkawka": "Duplicates",
-        "gdu": "Disk Map",
+        "macmon": "Boost",
     ]
 
     func refresh() async {

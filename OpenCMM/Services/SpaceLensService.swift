@@ -1,37 +1,23 @@
 import Foundation
 
-/// Integrates gdu for disk usage analysis with JSON directory tree output.
+/// Analyzes disk usage with lazy directory expansion.
 actor SpaceLensService {
-    private let dependencyManager = DependencyManager.shared
 
-    var isAvailable: Bool {
-        get async { await dependencyManager.isInstalled(.gdu) }
-    }
-
-    func analyze(path: String = FileUtils.homeDirectory()) async -> DiskNode? {
-        guard let gdu = await dependencyManager.path(for: .gdu) else {
-            return await analyzeFallback(path: path)
-        }
-
-        // gdu -o- outputs JSON to stdout
-        guard let output = try? await ShellExecutor.shellAsync("\(gdu) -o- \(ShellExecutor.quote(path)) 2>/dev/null"),
-              let data = output.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return await analyzeFallback(path: path)
-        }
-
-        return parseGduNode(json)
-    }
-
-    /// Quick top-level scan without gdu (native Swift fallback)
-    func analyzeFallback(path: String) async -> DiskNode? {
-        let url = URL(fileURLWithPath: path)
+    /// Scan a single directory level (non-recursive) — fast.
+    func scanDirectory(path: String) async -> [DiskNode] {
         var children: [DiskNode] = []
 
         for entry in FileUtils.contentsOfDirectory(path) {
             let fullPath = "\(path)/\(entry)"
             let isDir = FileUtils.isDirectory(fullPath)
-            let size = isDir ? FileUtils.directorySize(at: fullPath) : FileUtils.fileSize(at: fullPath)
+            let size: Int64
+
+            if isDir {
+                size = shallowDirectorySize(fullPath)
+            } else {
+                size = FileUtils.fileSize(at: fullPath)
+            }
+
             guard size > 0 else { continue }
             children.append(DiskNode(
                 name: entry, path: fullPath, size: size,
@@ -40,38 +26,27 @@ actor SpaceLensService {
         }
 
         children.sort { $0.size > $1.size }
-        let totalSize = children.reduce(0) { $0 + $1.size }
+        return children
+    }
 
+    /// Build root node for a path with its immediate children.
+    func analyze(path: String = FileUtils.homeDirectory()) async -> DiskNode? {
+        let children = await scanDirectory(path: path)
+        let totalSize = children.reduce(0) { $0 + $1.size }
+        let url = URL(fileURLWithPath: path)
         return DiskNode(
             name: url.lastPathComponent, path: path, size: totalSize,
             isDirectory: true, children: children
         )
     }
 
-    // MARK: - Parsing
-
-    private func parseGduNode(_ json: [String: Any]) -> DiskNode? {
-        guard let name = json["name"] as? String else { return nil }
-
-        let isDir = json["isDir"] as? Bool ?? false
-        let size = json["size"] as? Int64 ?? 0
-        var children: [DiskNode] = []
-
-        if let childArray = json["children"] as? [[String: Any]] {
-            children = childArray.compactMap { parseGduNode($0) }
-            children.sort { $0.size > $1.size }
+    /// Sum sizes of immediate children only (fast, no deep recursion).
+    private func shallowDirectorySize(_ path: String) -> Int64 {
+        var total: Int64 = 0
+        for entry in FileUtils.contentsOfDirectory(path) {
+            let fullPath = "\(path)/\(entry)"
+            total += FileUtils.fileSize(at: fullPath)
         }
-
-        let path: String
-        if let p = json["path"] as? String {
-            path = p
-        } else {
-            path = name
-        }
-
-        return DiskNode(
-            name: name, path: path, size: size,
-            isDirectory: isDir, children: children
-        )
+        return total
     }
 }

@@ -4,33 +4,27 @@ import SwiftUI
 class SpaceLensViewModel: ObservableObject {
     @Published var rootNode: DiskNode?
     @Published var isScanning = false
-    @Published var isGduInstalled = false
-    @Published var isInstallingGdu = false
-    @Published var installError: String?
     @Published var errorMessage: String?
+    @Published var navigationPath: [DiskNode] = []
 
     private let service = SpaceLensService()
-    private let dependencyManager = DependencyManager.shared
     private var scanTask: Task<Void, Never>?
 
-    func checkDependencies() async {
-        isGduInstalled = await dependencyManager.isInstalled(.gdu)
+    /// Current directory being viewed (root or a subdirectory).
+    var currentNode: DiskNode? {
+        navigationPath.last ?? rootNode
     }
 
-    func installGdu() async {
-        isInstallingGdu = true
-        installError = nil
-        do {
-            try await dependencyManager.install(.gdu)
-            isGduInstalled = true
-        } catch {
-            installError = error.localizedDescription
+    var breadcrumbs: [DiskNode] {
+        if let root = rootNode {
+            return [root] + navigationPath
         }
-        isInstallingGdu = false
+        return []
     }
 
     func startScan(path: String? = nil) {
         scanTask?.cancel()
+        navigationPath = []
         scanTask = Task { await scan(path: path) }
     }
 
@@ -47,5 +41,31 @@ class SpaceLensViewModel: ObservableObject {
         rootNode = await service.analyze(path: scanPath)
         guard !Task.isCancelled else { return }
         isScanning = false
+    }
+
+    /// Navigate into a subdirectory (lazy-load its children).
+    func expandDirectory(_ node: DiskNode) {
+        guard node.isDirectory else { return }
+        isScanning = true
+        scanTask = Task {
+            let children = await service.scanDirectory(path: node.path)
+            guard !Task.isCancelled else { return }
+            let totalSize = children.reduce(0) { $0 + $1.size }
+            let expanded = DiskNode(
+                name: node.name, path: node.path, size: totalSize,
+                isDirectory: true, children: children
+            )
+            navigationPath.append(expanded)
+            isScanning = false
+        }
+    }
+
+    /// Go back to a breadcrumb level.
+    func navigateTo(index: Int) {
+        if index == 0 {
+            navigationPath = []
+        } else if index <= navigationPath.count {
+            navigationPath = Array(navigationPath.prefix(index))
+        }
     }
 }

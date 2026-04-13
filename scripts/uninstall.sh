@@ -30,7 +30,6 @@ except: pass
         [osquery]="--cask osquery"
         [mas]="mas"
         [czkawka]="czkawka"
-        [gdu]="gdu"
         [macmon]="macmon"
     )
 
