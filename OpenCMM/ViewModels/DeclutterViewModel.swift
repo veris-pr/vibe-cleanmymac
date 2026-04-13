@@ -28,6 +28,15 @@ class DeclutterViewModel: ObservableObject {
         duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
     }
 
+    func loadFromStore() {
+        guard !scanComplete, let store = scanStore, !store.duplicateGroups.isEmpty else { return }
+        duplicateGroups = store.duplicateGroups
+        largeFiles = store.largeFiles
+        similarImages = store.similarImages
+        tempFiles = store.tempFiles
+        scanComplete = true
+    }
+
     var totalLargeFilesSize: Int64 {
         largeFiles.filter(\.isSelected).reduce(0) { $0 + $1.size }
     }
@@ -77,7 +86,11 @@ class DeclutterViewModel: ObservableObject {
         isScanning = false
         scanComplete = true
 
-        // Update dashboard
+        // Update global store
+        scanStore?.duplicateGroups = duplicateGroups
+        scanStore?.largeFiles = largeFiles
+        scanStore?.similarImages = similarImages
+        scanStore?.tempFiles = tempFiles
         let wastedSpace = duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
         let issues = duplicateGroups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
         scanStore?.updateSummary(ModuleScanSummary(

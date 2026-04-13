@@ -38,6 +38,15 @@ class ProtectViewModel: ObservableObject {
         return Theme.Colors.muted
     }
 
+    func loadFromStore() {
+        guard !scanComplete, let store = scanStore else { return }
+        if store.moduleSummaries[.protect] != nil {
+            threats = store.threats
+            auditResult = store.auditResult
+            scanComplete = true
+        }
+    }
+
     func checkDependencies() async {
         isClamAVInstalled = await deps.isInstalled(.clamav)
         isOsqueryInstalled = await deps.isInstalled(.osquery)
@@ -64,7 +73,9 @@ class ProtectViewModel: ObservableObject {
         isScanning = false
         scanComplete = true
 
-        // Update dashboard
+        // Update global store
+        scanStore?.threats = threats
+        scanStore?.auditResult = auditResult
         let issues = threats.prefix(3).map { $0.name }
         scanStore?.updateSummary(ModuleScanSummary(
             module: .protect, itemCount: threats.count, totalSize: 0,

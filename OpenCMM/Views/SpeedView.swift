@@ -215,8 +215,9 @@ struct SpeedView: View {
         }
         .background(Theme.Colors.background)
         .task {
-            if viewModel.systemInfo == nil, viewModel.scanStore?.moduleSummaries[.speed] != nil {
-                await viewModel.loadData()
+            viewModel.loadFromStore()
+            if viewModel.systemInfo == nil {
+                return  // show empty state — don't auto-scan
             }
         }
     }

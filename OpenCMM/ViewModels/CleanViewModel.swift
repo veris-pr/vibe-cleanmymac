@@ -25,6 +25,14 @@ class CleanViewModel: ObservableObject {
         scanResults.filter(\.isSelected).flatMap { $0.items.filter(\.isSelected) }.count
     }
 
+    /// Load pre-existing results from global ScanStore (e.g. after Overview scan).
+    func loadFromStore() {
+        guard !scanComplete, let store = scanStore, !store.cleanResults.isEmpty else { return }
+        scanResults = store.cleanResults
+        expandedSections = Set(scanResults.map(\.id))
+        scanComplete = true
+    }
+
     func scan() async {
         isScanning = true
         scanComplete = false
@@ -35,7 +43,8 @@ class CleanViewModel: ObservableObject {
         isScanning = false
         scanComplete = true
 
-        // Update dashboard
+        // Update global store
+        scanStore?.cleanResults = scanResults
         let totalSz = scanResults.reduce(0) { $0 + $1.totalSize }
         let count = scanResults.reduce(0) { $0 + $1.items.count }
         let issues = scanResults.map { "\($0.category): \(Formatters.fileSize($0.totalSize))" }

@@ -20,6 +20,12 @@ class UpdateViewModel: ObservableObject {
     var updateCount: Int { updates.count }
     var selectedCount: Int { updates.filter(\.isSelected).count }
 
+    func loadFromStore() {
+        guard !checkComplete, let store = scanStore, !store.updates.isEmpty else { return }
+        updates = store.updates
+        checkComplete = true
+    }
+
     func checkDependencies() async {
         isHomebrewInstalled = await deps.isHomebrewInstalled
         isMasInstalled = await deps.isInstalled(.mas)
@@ -55,7 +61,8 @@ class UpdateViewModel: ObservableObject {
         isChecking = false
         checkComplete = true
 
-        // Update dashboard
+        // Update global store
+        scanStore?.updates = updates
         let issues = updates.prefix(3).map { "\($0.name) → \($0.availableVersion)" }
         scanStore?.updateSummary(ModuleScanSummary(
             module: .update, itemCount: updates.count, totalSize: 0,

@@ -18,6 +18,11 @@ class SpeedViewModel: ObservableObject {
     private let deps = DependencyManager.shared
     private var refreshTask: Task<Void, Never>?
 
+    func loadFromStore() {
+        guard systemInfo == nil, let store = scanStore, let info = store.systemInfo else { return }
+        systemInfo = info
+    }
+
     func checkDependencies() async {
         isMactopInstalled = await deps.isInstalled(.mactop)
     }
@@ -98,6 +103,7 @@ class SpeedViewModel: ObservableObject {
 
     private func updateSpeedSummary() {
         guard let info = systemInfo else { return }
+        scanStore?.systemInfo = info
         var issues: [String] = []
         if info.memoryUsedPercent > 80 { issues.append("High memory usage: \(Int(info.memoryUsedPercent))%") }
         if info.diskUsedPercent > 80 { issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free") }

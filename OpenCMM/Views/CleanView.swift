@@ -146,9 +146,7 @@ struct CleanView: View {
         }
         .background(Theme.Colors.background)
         .task {
-            if !viewModel.scanComplete, viewModel.scanStore?.moduleSummaries[.clean] != nil {
-                await viewModel.scan()
-            }
+            viewModel.loadFromStore()
         }
         .confirmationDialog(
             "Clean Selected Items",
