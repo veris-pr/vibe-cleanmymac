@@ -28,7 +28,7 @@ struct SidebarView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "leaf")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Theme.Font.captionMedium)
                     .foregroundStyle(Theme.Colors.muted)
                 Text("OpenCMM")
                     .font(Theme.Font.caption)
@@ -49,7 +49,7 @@ struct SidebarView: View {
                 .font(Theme.Font.bodyMedium)
         } icon: {
             Image(systemName: module.icon)
-                .font(.system(size: 13, weight: .regular))
+                .font(Theme.Font.body)
                 .foregroundStyle(Theme.Colors.secondary)
         }
         .padding(.vertical, 1)

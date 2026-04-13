@@ -25,12 +25,12 @@ struct MenuBarView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Last Scan")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Theme.Font.captionBold)
                             .foregroundStyle(.secondary)
                         Spacer()
                         if let date = appState.scanStore.lastScanDate {
                             Text(Formatters.relativeDate(date))
-                                .font(.system(size: 10))
+                                .font(Theme.Font.small)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -44,10 +44,10 @@ struct MenuBarView: View {
             } else {
                 HStack(spacing: 6) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 10))
+                        .font(Theme.Font.small)
                         .foregroundStyle(.secondary)
                     Text("No scan results yet")
-                        .font(.system(size: 12))
+                        .font(Theme.Font.bodySmall)
                         .foregroundStyle(.secondary)
                 }
                 .padding(12)
@@ -82,7 +82,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("System")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Theme.Font.captionBold)
                     .foregroundStyle(.secondary)
                 Spacer()
                 if isLoadingMetrics {
@@ -91,7 +91,7 @@ struct MenuBarView: View {
                 } else {
                     Button(action: { Task { await refreshMetrics() } }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 10))
+                            .font(Theme.Font.small)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
@@ -106,7 +106,7 @@ struct MenuBarView: View {
                 }
             } else if !isLoadingMetrics {
                 Text("Tap refresh to load metrics")
-                    .font(.system(size: 11))
+                    .font(Theme.Font.caption)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -123,23 +123,23 @@ struct MenuBarView: View {
                     .stroke(gaugeColor(for: value), style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Text("\(Int(value * 100))%")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .font(Theme.Font.miniMono)
             }
             .frame(width: 36, height: 36)
 
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(Theme.Font.smallMedium)
             Text(detail)
-                .font(.system(size: 9))
+                .font(Theme.Font.mini)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private func gaugeColor(for value: Double) -> Color {
-        if value > 0.9 { return .red }
-        if value > 0.7 { return .orange }
-        return .green
+        if value > 0.9 { return Theme.Colors.destructive }
+        if value > 0.7 { return Theme.Colors.warning }
+        return Theme.Colors.success
     }
 
     private func refreshMetrics() async {
@@ -155,13 +155,13 @@ struct MenuBarView: View {
     private func scanRow(_ summary: ModuleScanSummary) -> some View {
         HStack(spacing: 6) {
             Image(systemName: summary.hasIssues ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 9))
+                .font(Theme.Font.mini)
                 .foregroundStyle(summary.hasIssues ? Theme.Colors.warning : Theme.Colors.success)
             Text(summary.module.rawValue)
-                .font(.system(size: 12))
+                .font(Theme.Font.bodySmall)
             Spacer()
             Text(summary.hasIssues ? summaryText(summary) : "OK")
-                .font(.system(size: 11))
+                .font(Theme.Font.caption)
                 .foregroundStyle(summary.hasIssues ? Theme.Colors.muted : Theme.Colors.success)
         }
     }
@@ -170,10 +170,10 @@ struct MenuBarView: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(Theme.Font.caption)
                     .frame(width: 16)
                 Text(title)
-                    .font(.system(size: 12))
+                    .font(Theme.Font.bodySmall)
                 Spacer()
             }
             .padding(.horizontal, 8)

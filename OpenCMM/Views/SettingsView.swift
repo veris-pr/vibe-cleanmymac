@@ -68,7 +68,7 @@ struct SettingsView: View {
                                         }) {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "arrow.down.circle")
-                                                    .font(.system(size: 11))
+                                                    .font(Theme.Font.caption)
                                                 Text("Install Homebrew")
                                             }
                                         }
@@ -81,7 +81,7 @@ struct SettingsView: View {
                                 if let error = viewModel.homebrewInstallError {
                                     HStack(spacing: 4) {
                                         Image(systemName: "exclamationmark.triangle.fill")
-                                            .font(.system(size: 10))
+                                            .font(Theme.Font.small)
                                             .foregroundStyle(Theme.Colors.destructive)
                                         Text(error)
                                             .font(Theme.Font.caption)
@@ -229,7 +229,7 @@ struct SettingsView: View {
                             .controlSize(.mini)
                     } else {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
+                            .font(Theme.Font.small)
                             .foregroundStyle(Theme.Colors.success)
                     }
                     Text(status)
@@ -243,7 +243,7 @@ struct SettingsView: View {
             if let error = tool.error {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
+                        .font(Theme.Font.small)
                         .foregroundStyle(Theme.Colors.destructive)
                     Text(error)
                         .font(Theme.Font.caption)
@@ -267,7 +267,7 @@ struct SettingsView: View {
         switch source {
         case .managedByUs:
             Text("managed")
-                .font(.system(size: 9, weight: .medium))
+                .font(Theme.Font.miniMedium)
                 .foregroundStyle(Theme.Colors.success.opacity(0.8))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
@@ -275,7 +275,7 @@ struct SettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 3))
         case .homebrew:
             Text("homebrew")
-                .font(.system(size: 9, weight: .medium))
+                .font(Theme.Font.miniMedium)
                 .foregroundStyle(Theme.Colors.muted)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
@@ -283,7 +283,7 @@ struct SettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 3))
         case .direct:
             Text("manual")
-                .font(.system(size: 9, weight: .medium))
+                .font(Theme.Font.miniMedium)
                 .foregroundStyle(Theme.Colors.warning.opacity(0.8))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)

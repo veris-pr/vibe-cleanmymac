@@ -80,7 +80,7 @@ struct UninstallView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Theme.Colors.muted)
-                        .font(.system(size: 12))
+                        .font(Theme.Font.bodySmall)
                     TextField("Search apps...", text: Binding(
                         get: { viewModel.searchText },
                         set: { viewModel.updateSearch($0) }
@@ -94,7 +94,7 @@ struct UninstallView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(Theme.Colors.muted)
-                                .font(.system(size: 11))
+                                .font(Theme.Font.caption)
                         }
                         .buttonStyle(.plain)
                     }
@@ -182,7 +182,7 @@ struct UninstallView: View {
                             .cornerRadius(6)
                     } else {
                         Image(systemName: "app.fill")
-                            .font(.system(size: 24))
+                            .font(.title2)
                             .foregroundStyle(Theme.Colors.muted)
                             .frame(width: 32, height: 32)
                     }
@@ -205,7 +205,7 @@ struct UninstallView: View {
                         .foregroundStyle(Theme.Colors.secondary)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Theme.Font.smallMedium)
                         .foregroundStyle(Theme.Colors.muted)
                 }
                 .contentShape(Rectangle())
@@ -227,7 +227,7 @@ struct UninstallView: View {
                     viewModel.deselectApp()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Theme.Font.bodySmall.weight(.medium))
                         .foregroundStyle(Theme.Colors.secondary)
                 }
                 .buttonStyle(.plain)
@@ -279,7 +279,7 @@ struct UninstallView: View {
                 Spacer()
                 VStack(spacing: Theme.Spacing.sm) {
                     Image(systemName: "checkmark.circle")
-                        .font(.system(size: 32))
+                        .font(.largeTitle)
                         .foregroundStyle(Theme.Colors.success)
                     Text("No leftover files found")
                         .font(Theme.Font.bodyMedium)
@@ -342,14 +342,14 @@ struct UninstallView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: categoryIcon(group.category))
-                    .font(.system(size: 11))
+                    .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.secondary)
                     .frame(width: 16)
                 Text(group.category.rawValue)
                     .font(Theme.Font.bodyMedium)
                 Spacer()
                 Text(Formatters.fileSize(group.items.reduce(0) { $0 + $1.size }))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(Theme.Font.monoSmall)
                     .foregroundStyle(Theme.Colors.muted)
             }
             .padding(.horizontal, Theme.Spacing.lg)
@@ -363,7 +363,7 @@ struct UninstallView: View {
                         .truncationMode(.middle)
                     Spacer()
                     Text(Formatters.fileSize(item.size))
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Theme.Font.monoSmall)
                         .foregroundStyle(Theme.Colors.muted)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

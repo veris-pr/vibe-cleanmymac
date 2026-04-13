@@ -154,7 +154,7 @@ struct SpeedView: View {
                 .font(Theme.Font.bodyMedium)
                 .foregroundStyle(Theme.Colors.foreground)
             Text(detail)
-                .font(.system(size: 9))
+                .font(Theme.Font.mini)
                 .foregroundStyle(Theme.Colors.muted)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
