@@ -6,6 +6,7 @@ class SmartCareViewModel: ObservableObject {
     @Published var progress: Double = 0
     @Published var currentStep: String = ""
     @Published var errorMessage: String?
+    @Published var scanMode: ScanMode = .quick
 
     var scanStore: ScanStore?
 
@@ -20,7 +21,8 @@ class SmartCareViewModel: ObservableObject {
 
     func startScan() {
         scanTask?.cancel()
-        scanTask = Task { await scan() }
+        let mode = scanMode
+        scanTask = Task { await scan(mode: mode) }
     }
 
     func cancelScan() {
@@ -30,10 +32,12 @@ class SmartCareViewModel: ObservableObject {
         currentStep = ""
     }
 
-    private func scan() async {
+    private func scan(mode: ScanMode) async {
         isScanning = true
         progress = 0
-        currentStep = "Starting scan..."
+        currentStep = "Starting \(mode.rawValue.lowercased()) scan..."
+
+        let isQuick = mode == .quick
 
         // Run all 5 scans concurrently using structured concurrency
         var collectedSummaries: [ModuleScanSummary] = []
@@ -69,7 +73,7 @@ class SmartCareViewModel: ObservableObject {
             }
 
             group.addTask { [duplicateService] in
-                let groups = await duplicateService.findDuplicates(quickScan: true)
+                let groups = await duplicateService.findDuplicates(quickScan: isQuick)
                 let wastedSpace = groups.reduce(0) { $0 + $1.wastedSpace }
                 let issues = groups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
                 return (4, ModuleScanSummary(module: .declutter, itemCount: groups.count, totalSize: wastedSpace, issues: Array(issues), timestamp: Date()))
@@ -97,7 +101,7 @@ class SmartCareViewModel: ObservableObject {
         let score = await systemInfoService.healthScore()
 
         // Persist to shared ScanStore
-        scanStore?.updateAll(collectedSummaries, healthScore: score)
+        scanStore?.updateAll(collectedSummaries, healthScore: score, scanMode: mode)
 
         isScanning = false
         currentStep = ""

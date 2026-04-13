@@ -1,5 +1,10 @@
 import Foundation
 
+enum ScanMode: String, CaseIterable {
+    case quick = "Quick"
+    case deep = "Deep"
+}
+
 struct ScanResult: Identifiable {
     let id = UUID()
     let category: String

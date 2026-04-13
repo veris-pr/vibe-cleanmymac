@@ -7,6 +7,7 @@ import SwiftUI
 class ScanStore: ObservableObject {
     @Published private(set) var moduleSummaries: [Module: ModuleScanSummary] = [:]
     @Published private(set) var lastScanDate: Date?
+    @Published private(set) var lastScanMode: ScanMode?
     @Published private(set) var healthScore: Int = 0
 
     var hasScanResults: Bool { !moduleSummaries.isEmpty }
@@ -26,12 +27,13 @@ class ScanStore: ObservableObject {
         lastScanDate = Date()
     }
 
-    /// Update all summaries at once (called by Smart Care full scan).
-    func updateAll(_ summaries: [ModuleScanSummary], healthScore: Int) {
+    /// Update all summaries at once (called by Overview full scan).
+    func updateAll(_ summaries: [ModuleScanSummary], healthScore: Int, scanMode: ScanMode) {
         for s in summaries {
             moduleSummaries[s.module] = s
         }
         self.healthScore = healthScore
+        self.lastScanMode = scanMode
         lastScanDate = Date()
     }
 
