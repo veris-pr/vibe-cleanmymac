@@ -41,6 +41,18 @@ struct DeclutterView: View {
                     largeFilesView
                 }
             } else {
+                // Dependency banner
+                DependencyBanner(
+                    toolName: "fclones",
+                    description: "High-performance duplicate file finder. Without it, a slower native hash-based scanner is used.",
+                    isInstalled: viewModel.isFclonesInstalled,
+                    isInstalling: viewModel.isInstallingFclones,
+                    installError: viewModel.installError,
+                    installAction: { Task { await viewModel.installFclones() } }
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+
                 Spacer()
                 EmptyStateView(
                     icon: "doc.on.doc",
@@ -53,6 +65,7 @@ struct DeclutterView: View {
             }
         }
         .background(Theme.Colors.background)
+        .task { await viewModel.checkDependencies() }
     }
 
     private var duplicatesView: some View {

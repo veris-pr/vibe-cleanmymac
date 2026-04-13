@@ -18,7 +18,7 @@ struct ProtectView: View {
                 VStack(spacing: Theme.Spacing.md) {
                     ProgressView()
                         .controlSize(.regular)
-                    Text("Scanning for threats...")
+                    Text(viewModel.isClamAVInstalled ? "Deep scanning with ClamAV..." : "Scanning for threats...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
                 }
@@ -83,6 +83,18 @@ struct ProtectView: View {
                     )
                 }
             } else {
+                // Dependency banner
+                DependencyBanner(
+                    toolName: "ClamAV",
+                    description: "Industry-standard antivirus engine with millions of malware signatures. Without it, only basic pattern checks run.",
+                    isInstalled: viewModel.isClamAVInstalled,
+                    isInstalling: viewModel.isInstallingClamAV,
+                    installError: viewModel.installError,
+                    installAction: { Task { await viewModel.installClamAV() } }
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+
                 Spacer()
                 EmptyStateView(
                     icon: "shield",
@@ -95,6 +107,7 @@ struct ProtectView: View {
             }
         }
         .background(Theme.Colors.background)
+        .task { await viewModel.checkDependencies() }
     }
 
     private var statusBanner: some View {

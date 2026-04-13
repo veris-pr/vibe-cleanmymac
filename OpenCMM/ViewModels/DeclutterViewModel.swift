@@ -8,8 +8,12 @@ class DeclutterViewModel: ObservableObject {
     @Published var isRemoving = false
     @Published var scanComplete = false
     @Published var selectedTab: DeclutterTab = .duplicates
+    @Published var isFclonesInstalled = false
+    @Published var isInstallingFclones = false
+    @Published var installError: String?
 
     private let service = DuplicateFinderService()
+    private let deps = DependencyManager.shared
 
     var totalWastedSpace: Int64 {
         duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
@@ -17,6 +21,22 @@ class DeclutterViewModel: ObservableObject {
 
     var totalLargeFilesSize: Int64 {
         largeFiles.filter(\.isSelected).reduce(0) { $0 + $1.size }
+    }
+
+    func checkDependencies() async {
+        isFclonesInstalled = await deps.fclonesStatus().isInstalled
+    }
+
+    func installFclones() async {
+        isInstallingFclones = true
+        installError = nil
+        do {
+            try await deps.installFclones()
+            isFclonesInstalled = true
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingFclones = false
     }
 
     func scan() async {

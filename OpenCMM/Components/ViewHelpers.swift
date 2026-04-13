@@ -192,3 +192,71 @@ struct FileRow: View {
         .padding(.vertical, 2)
     }
 }
+
+// MARK: - Dependency Banner
+
+struct DependencyBanner: View {
+    let toolName: String
+    let description: String
+    let isInstalled: Bool
+    let isInstalling: Bool
+    let installError: String?
+    let installAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: isInstalled ? "checkmark.circle" : "info.circle")
+                .font(.system(size: 14))
+                .foregroundStyle(isInstalled ? Theme.Colors.success : Theme.Colors.muted)
+
+            VStack(alignment: .leading, spacing: 2) {
+                if isInstalled {
+                    Text("\(toolName) is active")
+                        .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(Theme.Colors.foreground)
+                } else {
+                    Text("Install \(toolName) for better results")
+                        .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(Theme.Colors.foreground)
+                    Text(description)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                    if let error = installError {
+                        Text(error)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.destructive)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if !isInstalled {
+                Button(action: installAction) {
+                    HStack(spacing: 4) {
+                        if isInstalling {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Text(isInstalling ? "Installing..." : "Install")
+                            .font(Theme.Font.bodyMedium)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(isInstalling ? Color.primary.opacity(0.4) : Color.primary.opacity(0.85))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                }
+                .buttonStyle(.plain)
+                .disabled(isInstalling)
+            }
+        }
+        .padding(Theme.Spacing.md)
+        .background(isInstalled ? Theme.Colors.success.opacity(0.05) : Theme.Colors.subtle)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.md)
+                .stroke(isInstalled ? Theme.Colors.success.opacity(0.2) : Theme.Colors.border, lineWidth: 1)
+        )
+    }
+}

@@ -6,8 +6,12 @@ class ProtectViewModel: ObservableObject {
     @Published var isScanning = false
     @Published var isRemoving = false
     @Published var scanComplete = false
+    @Published var isClamAVInstalled = false
+    @Published var isInstallingClamAV = false
+    @Published var installError: String?
 
     private let service = MalwareScanService()
+    private let deps = DependencyManager.shared
 
     var threatCount: Int { threats.count }
     var criticalCount: Int { threats.filter { $0.severity == .critical }.count }
@@ -25,6 +29,22 @@ class ProtectViewModel: ObservableObject {
         if threats.isEmpty { return Theme.Colors.success }
         if criticalCount > 0 { return Theme.Colors.destructive }
         return Theme.Colors.muted
+    }
+
+    func checkDependencies() async {
+        isClamAVInstalled = await deps.clamavStatus().isInstalled
+    }
+
+    func installClamAV() async {
+        isInstallingClamAV = true
+        installError = nil
+        do {
+            try await deps.installClamAV()
+            isClamAVInstalled = true
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingClamAV = false
     }
 
     func scan() async {

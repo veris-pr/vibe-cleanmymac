@@ -3,6 +3,11 @@ import CryptoKit
 
 actor DuplicateFinderService {
     private let home = FileUtils.homeDirectory()
+    private let deps = DependencyManager.shared
+
+    var isFclonesAvailable: Bool {
+        get async { await deps.fclonesStatus().isInstalled }
+    }
 
     func findDuplicates(in paths: [String]? = nil) async -> [DuplicateGroup] {
         let searchPaths = paths ?? [
@@ -11,36 +16,13 @@ actor DuplicateFinderService {
             "\(home)/Desktop",
         ]
 
-        var hashMap: [String: [DuplicateFile]] = [:]
-        var sizeMap: [Int64: [String]] = [:]
-
-        // Phase 1: Group by file size (fast filter)
-        for basePath in searchPaths {
-            guard FileUtils.exists(basePath) else { continue }
-            collectFiles(at: basePath, into: &sizeMap)
+        // Use fclones if available (much faster and more accurate)
+        if let fclones = await deps.fclonesStatus().path {
+            return await findDuplicatesWithFclones(fclones, paths: searchPaths)
         }
 
-        // Phase 2: Hash only files with matching sizes
-        for (size, paths) in sizeMap where paths.count > 1 {
-            for path in paths {
-                guard let hash = hashFile(at: path) else { continue }
-                let name = URL(fileURLWithPath: path).lastPathComponent
-                let modDate = FileUtils.modificationDate(at: path) ?? Date.distantPast
-                let file = DuplicateFile(path: path, name: name, size: size, modifiedDate: modDate)
-                hashMap[hash, default: []].append(file)
-            }
-        }
-
-        // Phase 3: Build groups (only actual duplicates)
-        return hashMap.compactMap { (hash, files) -> DuplicateGroup? in
-            guard files.count > 1 else { return nil }
-            var group = DuplicateGroup(hash: hash, fileSize: files[0].size, files: files)
-            // Auto-mark the newest file as "keep"
-            if let newestIndex = group.files.indices.max(by: { group.files[$0].modifiedDate < group.files[$1].modifiedDate }) {
-                group.files[newestIndex].keepThis = true
-            }
-            return group
-        }.sorted { $0.wastedSpace > $1.wastedSpace }
+        // Fallback to native Swift implementation
+        return await findDuplicatesNative(paths: searchPaths)
     }
 
     func findLargeFiles(minSize: Int64 = 100_000_000) async -> [LargeFile] {
@@ -76,21 +58,140 @@ actor DuplicateFinderService {
         return (removed, freed)
     }
 
-    // MARK: - Helpers
+    // MARK: - fclones Integration
 
-    private func collectFiles(at path: String, into sizeMap: inout [Int64: [String]], maxDepth: Int = 5) {
-        guard maxDepth > 0 else { return }
+    private func findDuplicatesWithFclones(_ fclones: String, paths: [String]) async -> [DuplicateGroup] {
+        let existingPaths = paths.filter { FileUtils.exists($0) }
+        guard !existingPaths.isEmpty else { return [] }
+
+        let pathArgs = existingPaths.map { "\"\($0)\"" }.joined(separator: " ")
+
+        guard let output = try? ShellExecutor.shell(
+            "\(fclones) group \(pathArgs) --format json 2>/dev/null"
+        ), !output.isEmpty else {
+            // Fall back to native if fclones fails
+            return await findDuplicatesNative(paths: paths)
+        }
+
+        return parseFclonesOutput(output)
+    }
+
+    private func parseFclonesOutput(_ output: String) -> [DuplicateGroup] {
+        // fclones JSON output: array of groups, each with "files" array and "file_len"
+        guard let data = output.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            // Try line-based format as fallback
+            return parseFclonesLineOutput(output)
+        }
+
+        return json.compactMap { group -> DuplicateGroup? in
+            guard let files = group["files"] as? [String],
+                  let fileLen = group["file_len"] as? Int64,
+                  files.count > 1 else { return nil }
+
+            var dupeFiles = files.map { path -> DuplicateFile in
+                let name = URL(fileURLWithPath: path).lastPathComponent
+                let modDate = FileUtils.modificationDate(at: path) ?? Date.distantPast
+                return DuplicateFile(path: path, name: name, size: fileLen, modifiedDate: modDate)
+            }
+
+            // Mark newest as keep
+            if let newestIdx = dupeFiles.indices.max(by: { dupeFiles[$0].modifiedDate < dupeFiles[$1].modifiedDate }) {
+                dupeFiles[newestIdx].keepThis = true
+            }
+
+            return DuplicateGroup(hash: UUID().uuidString, fileSize: fileLen, files: dupeFiles)
+        }.sorted { $0.wastedSpace > $1.wastedSpace }
+    }
+
+    private func parseFclonesLineOutput(_ output: String) -> [DuplicateGroup] {
+        // fclones default output groups duplicates separated by blank lines
+        var groups: [DuplicateGroup] = []
+        var currentFiles: [String] = []
+
+        for line in output.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty {
+                if currentFiles.count > 1 {
+                    let group = buildGroupFromPaths(currentFiles)
+                    if let group { groups.append(group) }
+                }
+                currentFiles = []
+            } else {
+                currentFiles.append(trimmed)
+            }
+        }
+        // Handle last group
+        if currentFiles.count > 1, let group = buildGroupFromPaths(currentFiles) {
+            groups.append(group)
+        }
+
+        return groups.sorted { $0.wastedSpace > $1.wastedSpace }
+    }
+
+    private func buildGroupFromPaths(_ paths: [String]) -> DuplicateGroup? {
+        var files: [DuplicateFile] = []
+        for path in paths {
+            let size = FileUtils.fileSize(at: path)
+            guard size > 0 else { continue }
+            let name = URL(fileURLWithPath: path).lastPathComponent
+            let modDate = FileUtils.modificationDate(at: path) ?? Date.distantPast
+            files.append(DuplicateFile(path: path, name: name, size: size, modifiedDate: modDate))
+        }
+        guard files.count > 1 else { return nil }
+
+        if let newestIdx = files.indices.max(by: { files[$0].modifiedDate < files[$1].modifiedDate }) {
+            files[newestIdx].keepThis = true
+        }
+        return DuplicateGroup(hash: UUID().uuidString, fileSize: files[0].size, files: files)
+    }
+
+    // MARK: - Native Swift Fallback
+
+    private func findDuplicatesNative(paths: [String]) async -> [DuplicateGroup] {
+        var sizeMap: [Int64: [String]] = [:]
+
+        // Phase 1: Group by file size
+        for basePath in paths {
+            guard FileUtils.exists(basePath) else { continue }
+            collectFiles(at: basePath, into: &sizeMap)
+        }
+
+        // Phase 2: Full hash files with matching sizes
+        var hashMap: [String: [DuplicateFile]] = [:]
+        for (size, filePaths) in sizeMap where filePaths.count > 1 {
+            for path in filePaths {
+                guard let hash = hashFile(at: path) else { continue }
+                let name = URL(fileURLWithPath: path).lastPathComponent
+                let modDate = FileUtils.modificationDate(at: path) ?? Date.distantPast
+                let file = DuplicateFile(path: path, name: name, size: size, modifiedDate: modDate)
+                hashMap[hash, default: []].append(file)
+            }
+        }
+
+        // Phase 3: Build groups
+        return hashMap.compactMap { (hash, files) -> DuplicateGroup? in
+            guard files.count > 1 else { return nil }
+            var group = DuplicateGroup(hash: hash, fileSize: files[0].size, files: files)
+            if let newestIndex = group.files.indices.max(by: { group.files[$0].modifiedDate < group.files[$1].modifiedDate }) {
+                group.files[newestIndex].keepThis = true
+            }
+            return group
+        }.sorted { $0.wastedSpace > $1.wastedSpace }
+    }
+
+    private func collectFiles(at path: String, into sizeMap: inout [Int64: [String]]) {
         guard let enumerator = FileManager.default.enumerator(
             at: URL(fileURLWithPath: path),
-            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isDirectoryKey],
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
             options: [.skipsHiddenFiles]
         ) else { return }
 
         for case let fileURL as URL in enumerator {
-            guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
-                  resourceValues.isRegularFile == true,
-                  let fileSize = resourceValues.fileSize,
-                  fileSize > 1024 else { continue } // Skip tiny files
+            guard let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
+                  values.isRegularFile == true,
+                  let fileSize = values.fileSize,
+                  fileSize > 1024 else { continue }
             sizeMap[Int64(fileSize), default: []].append(fileURL.path)
         }
     }
@@ -100,13 +201,12 @@ actor DuplicateFinderService {
         defer { fileHandle.closeFile() }
 
         var hasher = SHA256()
-        // Hash first 64KB for speed, full hash for small files
-        let chunkSize = 65536
-        if let data = try? fileHandle.read(upToCount: chunkSize) {
-            hasher.update(data: data)
+        while true {
+            let chunk = fileHandle.readData(ofLength: 65536)
+            if chunk.isEmpty { break }
+            hasher.update(data: chunk)
         }
-        let digest = hasher.finalize()
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     private func findLargeFilesRecursive(at path: String, minSize: Int64, into results: inout [LargeFile]) {
@@ -121,12 +221,9 @@ actor DuplicateFinderService {
                   values.isRegularFile == true,
                   let fileSize = values.fileSize,
                   Int64(fileSize) >= minSize else { continue }
-
             results.append(LargeFile(
-                path: fileURL.path,
-                name: fileURL.lastPathComponent,
-                size: Int64(fileSize),
-                lastAccessed: values.contentAccessDate ?? Date.distantPast
+                path: fileURL.path, name: fileURL.lastPathComponent,
+                size: Int64(fileSize), lastAccessed: values.contentAccessDate ?? Date.distantPast
             ))
         }
     }
