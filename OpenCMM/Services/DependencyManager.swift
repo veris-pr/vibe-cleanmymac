@@ -118,6 +118,12 @@ actor DependencyManager {
             throw DependencyError.homebrewRequired
         }
 
+        // If already installed but not by us, just use it — don't claim ownership
+        let current = status(for: tool)
+        if current.isInstalled && !current.managedByUs {
+            return
+        }
+
         let cmd = tool.isCask
             ? "brew install --cask \(tool.brewPackage)"
             : "brew install \(tool.brewPackage)"
