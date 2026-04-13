@@ -11,7 +11,7 @@ class ProtectViewModel: ObservableObject {
     @Published var installError: String?
     @Published var errorMessage: String?
     @Published var showConfirmation = false
-    @Published var auditResult: OsqueryService.AuditResult?
+    @Published var auditResult: AuditResult?
     @Published var isOsqueryInstalled = false
 
     var scanStore: ScanStore?

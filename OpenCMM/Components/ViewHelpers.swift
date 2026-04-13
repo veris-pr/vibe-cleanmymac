@@ -158,42 +158,6 @@ struct SectionHeaderRow: View {
     }
 }
 
-// MARK: - File Row
-
-struct FileRow: View {
-    let icon: String
-    let name: String
-    let path: String
-    let trailing: String
-
-    var body: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(Theme.Colors.muted)
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(name)
-                    .font(Theme.Font.body)
-                    .foregroundStyle(Theme.Colors.foreground)
-                Text(path)
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted.opacity(0.7))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-
-            Spacer()
-
-            Text(trailing)
-                .font(Theme.Font.monoSmall)
-                .foregroundStyle(Theme.Colors.secondary)
-        }
-        .padding(.vertical, 2)
-    }
-}
-
 // MARK: - Dependency Banner
 
 struct DependencyBanner: View {

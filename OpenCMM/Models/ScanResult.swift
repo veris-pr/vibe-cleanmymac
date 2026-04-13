@@ -25,4 +25,19 @@ struct ModuleScanSummary: Identifiable {
     let timestamp: Date
 
     var hasIssues: Bool { itemCount > 0 }
+
+    /// Build a speed summary from system info (shared by SpeedVM + SmartCareVM).
+    static func speed(from info: SystemInfo) -> ModuleScanSummary {
+        var issues: [String] = []
+        if info.memoryUsedPercent > AppConstants.Summary.highMemoryPercent {
+            issues.append("High memory usage: \(Int(info.memoryUsedPercent))%")
+        }
+        if info.diskUsedPercent > AppConstants.Summary.lowDiskPercent {
+            issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free")
+        }
+        if info.cpuUsage > AppConstants.Summary.highCpuPercent {
+            issues.append("High CPU: \(Int(info.cpuUsage))%")
+        }
+        return ModuleScanSummary(module: .speed, itemCount: issues.count, totalSize: 0, issues: issues, timestamp: Date())
+    }
 }

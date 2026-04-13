@@ -52,6 +52,11 @@ enum ShellExecutor {
         let script = "do shell script \"\(escaped)\" with administrator privileges"
         return try run("/usr/bin/osascript", arguments: ["-e", script])
     }
+
+    /// Safely quote a path for shell interpolation.
+    static func quote(_ path: String) -> String {
+        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
 }
 
 enum ShellError: LocalizedError {

@@ -4,8 +4,8 @@ import SwiftUI
 class DeclutterViewModel: ObservableObject {
     @Published var duplicateGroups: [DuplicateGroup] = []
     @Published var largeFiles: [LargeFile] = []
-    @Published var similarImages: [CzkawkaService.SimilarGroup] = []
-    @Published var tempFiles: [CzkawkaService.TempFileResult] = []
+    @Published var similarImages: [SimilarGroup] = []
+    @Published var tempFiles: [TempFileResult] = []
     @Published var isScanning = false
     @Published var isRemoving = false
     @Published var scanComplete = false
@@ -111,48 +111,35 @@ class DeclutterViewModel: ObservableObject {
     }
 
     func removeLargeFiles() async {
-        isRemoving = true
-        errorMessage = nil
-        for file in largeFiles where file.isSelected {
-            do {
-                try FileUtils.moveToTrash(file.path)
-            } catch {
-                errorMessage = "Failed to remove \(file.name): \(error.localizedDescription)"
-            }
-        }
-        largeFiles.removeAll { $0.isSelected }
-        isRemoving = false
-        scanStore?.invalidate(.declutter)
+        await removeFiles(
+            largeFiles.filter(\.isSelected).map { (path: $0.path, name: $0.name) }
+        ) { largeFiles.removeAll { $0.isSelected } }
     }
 
     func removeSimilarImages() async {
-        isRemoving = true
-        errorMessage = nil
-        for group in similarImages {
-            for file in group.files where !file.keepThis {
-                do {
-                    try FileUtils.moveToTrash(file.path)
-                } catch {
-                    errorMessage = "Failed to remove \(file.name): \(error.localizedDescription)"
-                }
-            }
+        let toRemove = similarImages.flatMap { group in
+            group.files.filter { !$0.keepThis }.map { (path: $0.path, name: $0.name) }
         }
-        similarImages.removeAll()
-        isRemoving = false
-        scanStore?.invalidate(.declutter)
+        await removeFiles(toRemove) { similarImages.removeAll() }
     }
 
     func removeTempFiles() async {
+        await removeFiles(
+            tempFiles.map { (path: $0.path, name: $0.name) }
+        ) { tempFiles.removeAll() }
+    }
+
+    private func removeFiles(_ files: [(path: String, name: String)], clear: () -> Void) async {
         isRemoving = true
         errorMessage = nil
-        for file in tempFiles {
+        for file in files {
             do {
                 try FileUtils.moveToTrash(file.path)
             } catch {
                 errorMessage = "Failed to remove \(file.name): \(error.localizedDescription)"
             }
         }
-        tempFiles.removeAll()
+        clear()
         isRemoving = false
         scanStore?.invalidate(.declutter)
     }

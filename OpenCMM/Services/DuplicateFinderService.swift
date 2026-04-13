@@ -1,5 +1,8 @@
 import Foundation
 import CryptoKit
+import os
+
+private let logger = Logger(subsystem: "com.opencmm.app", category: "DuplicateFinderService")
 
 actor DuplicateFinderService {
     private let home = FileUtils.homeDirectory()
@@ -25,7 +28,7 @@ actor DuplicateFinderService {
         return await findDuplicatesNative(paths: searchPaths, quickScan: quickScan)
     }
 
-    func findLargeFiles(minSize: Int64 = 100_000_000) async -> [LargeFile] {
+    func findLargeFiles(minSize: Int64 = AppConstants.FileSize.minLargeFile) async -> [LargeFile] {
         let searchPaths = [
             "\(home)/Documents",
             "\(home)/Downloads",
@@ -51,7 +54,7 @@ actor DuplicateFinderService {
                     removed += 1
                     freed += file.size
                 } catch {
-                    print("Failed to remove \(file.path): \(error.localizedDescription)")
+                    logger.error("Failed to remove \(file.path): \(error.localizedDescription)")
                 }
             }
         }
@@ -152,7 +155,7 @@ actor DuplicateFinderService {
         var sizeMap: [Int64: [String]] = [:]
 
         // Phase 1: Group by file size (skip tiny files in quick mode)
-        let minFileSize: Int64 = quickScan ? 4096 : 1024
+        let minFileSize: Int64 = quickScan ? AppConstants.FileSize.minDuplicateSizeQuick : AppConstants.FileSize.minDuplicateSize
         for basePath in paths {
             guard FileUtils.exists(basePath) else { continue }
             collectFiles(at: basePath, minSize: minFileSize, into: &sizeMap)

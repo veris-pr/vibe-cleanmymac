@@ -18,18 +18,18 @@ actor SystemInfoService {
         var score = 100
 
         // Memory penalty
-        if info.memoryUsedPercent > 90 { score -= 30 }
-        else if info.memoryUsedPercent > 75 { score -= 15 }
-        else if info.memoryUsedPercent > 60 { score -= 5 }
+        if info.memoryUsedPercent > AppConstants.Health.memoryCritical { score -= AppConstants.Health.memoryCriticalPenalty }
+        else if info.memoryUsedPercent > AppConstants.Health.memoryWarning { score -= AppConstants.Health.memoryWarningPenalty }
+        else if info.memoryUsedPercent > 60 { score -= AppConstants.Health.memoryMildPenalty }
 
         // Disk penalty
-        if info.diskUsedPercent > 90 { score -= 30 }
-        else if info.diskUsedPercent > 75 { score -= 15 }
-        else if info.diskUsedPercent > 60 { score -= 5 }
+        if info.diskUsedPercent > AppConstants.Health.diskCritical { score -= AppConstants.Health.diskCriticalPenalty }
+        else if info.diskUsedPercent > AppConstants.Health.diskWarning { score -= AppConstants.Health.diskWarningPenalty }
+        else if info.diskUsedPercent > 60 { score -= AppConstants.Health.diskMildPenalty }
 
         // CPU penalty
-        if info.cpuUsage > 90 { score -= 20 }
-        else if info.cpuUsage > 70 { score -= 10 }
+        if info.cpuUsage > AppConstants.Health.cpuCritical { score -= AppConstants.Health.cpuCriticalPenalty }
+        else if info.cpuUsage > AppConstants.Health.cpuWarning { score -= AppConstants.Health.cpuWarningPenalty }
 
         return max(0, min(100, score))
     }

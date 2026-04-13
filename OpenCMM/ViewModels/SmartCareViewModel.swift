@@ -66,11 +66,7 @@ class SmartCareViewModel: ObservableObject {
 
             group.addTask { [performanceService] in
                 let info = await performanceService.getSystemInfo()
-                var issues: [String] = []
-                if info.memoryUsedPercent > 80 { issues.append("High memory usage: \(Int(info.memoryUsedPercent))%") }
-                if info.diskUsedPercent > 80 { issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free") }
-                if info.cpuUsage > 70 { issues.append("High CPU: \(Int(info.cpuUsage))%") }
-                let summary = ModuleScanSummary(module: .speed, itemCount: issues.count, totalSize: 0, issues: issues, timestamp: Date())
+                let summary = ModuleScanSummary.speed(from: info)
                 return (2, .speed(info, summary))
             }
 

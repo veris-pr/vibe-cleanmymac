@@ -66,14 +66,16 @@ actor PerformanceService {
         return items
     }
 
-    func purgeMemory() async -> Bool {
-        do {
-            try ShellExecutor.shell("sudo purge")
-            return true
-        } catch {
-            // purge may require elevated privileges
-            return false
-        }
+    func purgeMemory() async throws {
+        try ShellExecutor.shellWithAdmin("purge")
+    }
+
+    func disableLoginItem(path: String) throws {
+        try ShellExecutor.shell("launchctl unload \(ShellExecutor.quote(path))")
+    }
+
+    func enableLoginItem(path: String) throws {
+        try ShellExecutor.shell("launchctl load \(ShellExecutor.quote(path))")
     }
 
     // MARK: - System Info Helpers

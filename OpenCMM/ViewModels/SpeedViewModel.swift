@@ -60,7 +60,7 @@ class SpeedViewModel: ObservableObject {
         if isAutoRefresh {
             refreshTask = Task {
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    try? await Task.sleep(nanoseconds: AppConstants.Timing.autoRefreshInterval)
                     guard !Task.isCancelled else { break }
                     await analyze()
                 }
@@ -73,7 +73,12 @@ class SpeedViewModel: ObservableObject {
 
     func purgeMemory() async {
         isPurging = true
-        _ = await service.purgeMemory()
+        errorMessage = nil
+        do {
+            try await service.purgeMemory()
+        } catch {
+            errorMessage = "Failed to free RAM: \(error.localizedDescription)"
+        }
         systemInfo = await service.getSystemInfo()
         isPurging = false
         scanStore?.invalidate(.speed)
@@ -81,7 +86,7 @@ class SpeedViewModel: ObservableObject {
 
     func disableLoginItem(_ item: LoginItem) async {
         do {
-            try ShellExecutor.shell("launchctl unload \"\(item.path)\"")
+            try await service.disableLoginItem(path: item.path)
             if let index = loginItems.firstIndex(where: { $0.id == item.id }) {
                 loginItems[index].isEnabled = false
             }
@@ -92,7 +97,7 @@ class SpeedViewModel: ObservableObject {
 
     func enableLoginItem(_ item: LoginItem) async {
         do {
-            try ShellExecutor.shell("launchctl load \"\(item.path)\"")
+            try await service.enableLoginItem(path: item.path)
             if let index = loginItems.firstIndex(where: { $0.id == item.id }) {
                 loginItems[index].isEnabled = true
             }
@@ -104,13 +109,6 @@ class SpeedViewModel: ObservableObject {
     private func updateSpeedSummary() {
         guard let info = systemInfo else { return }
         scanStore?.systemInfo = info
-        var issues: [String] = []
-        if info.memoryUsedPercent > 80 { issues.append("High memory usage: \(Int(info.memoryUsedPercent))%") }
-        if info.diskUsedPercent > 80 { issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free") }
-        if info.cpuUsage > 70 { issues.append("High CPU: \(Int(info.cpuUsage))%") }
-        scanStore?.updateSummary(ModuleScanSummary(
-            module: .speed, itemCount: issues.count, totalSize: 0,
-            issues: issues, timestamp: Date()
-        ))
+        scanStore?.updateSummary(.speed(from: info))
     }
 }

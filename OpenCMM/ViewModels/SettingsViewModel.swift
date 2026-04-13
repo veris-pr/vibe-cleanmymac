@@ -49,7 +49,6 @@ class SettingsViewModel: ObservableObject {
         "fclones": "Duplicates",
         "czkawka": "Duplicates",
         "gdu": "Disk Map",
-        "dust": "Disk Map",
     ]
 
     func refresh() async {
@@ -98,7 +97,7 @@ class SettingsViewModel: ObservableObject {
             // Clear success message after a moment
             let capturedId = id
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(nanoseconds: AppConstants.Timing.statusMessageDelay)
                 if let i = tools.firstIndex(where: { $0.id == capturedId }) {
                     tools[i].statusText = nil
                 }

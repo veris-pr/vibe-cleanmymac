@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 actor UpdateService {
     func checkForUpdates() async -> [AppUpdateInfo] {
@@ -32,23 +33,22 @@ actor UpdateService {
             }
             return true
         } catch {
-            print("Failed to update \(app.name): \(error.localizedDescription)")
+            Logger(subsystem: "com.opencmm.app", category: "UpdateService")
+                .error("Failed to update \(app.name): \(error.localizedDescription)")
             return false
         }
     }
 
     // MARK: - Helpers
 
-    private func checkHomebrewUpdates() async -> [AppUpdateInfo]? {
+    private func checkBrew(command: String, source: UpdateSource) async -> [AppUpdateInfo]? {
         guard isHomebrewInstalled() else { return nil }
-
         do {
-            let output = try ShellExecutor.shell("brew outdated --json")
+            let output = try ShellExecutor.shell(command)
             guard let data = output.data(using: .utf8),
                   let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
                 return nil
             }
-
             return json.compactMap { item -> AppUpdateInfo? in
                 guard let name = item["name"] as? String,
                       let currentVersion = item["installed_versions"] as? [String],
@@ -59,7 +59,7 @@ actor UpdateService {
                     name: name,
                     currentVersion: currentVersion.first ?? "unknown",
                     availableVersion: availableVersion,
-                    source: .homebrew
+                    source: source
                 )
             }
         } catch {
@@ -67,32 +67,12 @@ actor UpdateService {
         }
     }
 
+    private func checkHomebrewUpdates() async -> [AppUpdateInfo]? {
+        await checkBrew(command: "brew outdated --json", source: .homebrew)
+    }
+
     private func checkHomebrewCaskUpdates() async -> [AppUpdateInfo]? {
-        guard isHomebrewInstalled() else { return nil }
-
-        do {
-            let output = try ShellExecutor.shell("brew outdated --cask --greedy --json")
-            guard let data = output.data(using: .utf8),
-                  let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                return nil
-            }
-
-            return json.compactMap { item -> AppUpdateInfo? in
-                guard let name = item["name"] as? String,
-                      let currentVersion = item["installed_versions"] as? [String],
-                      let availableVersion = item["current_version"] as? String else {
-                    return nil
-                }
-                return AppUpdateInfo(
-                    name: name,
-                    currentVersion: currentVersion.first ?? "unknown",
-                    availableVersion: availableVersion,
-                    source: .homebrewCask
-                )
-            }
-        } catch {
-            return nil
-        }
+        await checkBrew(command: "brew outdated --cask --greedy --json", source: .homebrewCask)
     }
 
     private func isHomebrewInstalled() -> Bool {

@@ -4,24 +4,6 @@ import Foundation
 actor SpaceLensService {
     private let deps = DependencyManager.shared
 
-    struct DiskNode: Identifiable {
-        let id = UUID()
-        let name: String
-        let path: String
-        let size: Int64
-        let isDirectory: Bool
-        var children: [DiskNode]
-        var isExpanded: Bool = false
-
-        var formattedSize: String { Formatters.fileSize(size) }
-
-        // Percentage of parent
-        func percentage(of parentSize: Int64) -> Double {
-            guard parentSize > 0 else { return 0 }
-            return Double(size) / Double(parentSize) * 100
-        }
-    }
-
     var isAvailable: Bool {
         get async { await deps.isInstalled(.gdu) }
     }
@@ -32,7 +14,7 @@ actor SpaceLensService {
         }
 
         // gdu -o- outputs JSON to stdout
-        guard let output = try? ShellExecutor.shell("\(gdu) -o- \"\(path)\" 2>/dev/null"),
+        guard let output = try? ShellExecutor.shell("\(gdu) -o- \(ShellExecutor.quote(path)) 2>/dev/null"),
               let data = output.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return await analyzeFallback(path: path)

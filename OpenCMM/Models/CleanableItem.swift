@@ -25,7 +25,6 @@ enum CleanCategory: String, CaseIterable {
     case userLogs = "User Logs"
     case xcodeData = "Xcode Data"
     case trash = "Trash"
-    case downloads = "Old Downloads"
 
     var icon: String {
         switch self {
@@ -36,7 +35,6 @@ enum CleanCategory: String, CaseIterable {
         case .userLogs: return "doc.text.fill"
         case .xcodeData: return "hammer"
         case .trash: return "trash"
-        case .downloads: return "arrow.down.circle"
         }
     }
 }

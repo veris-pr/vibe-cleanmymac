@@ -14,12 +14,12 @@ class ScanStore: ObservableObject {
     @Published var cleanResults: [ScanResult] = []
     @Published var threats: [ThreatItem] = []
     @Published var systemInfo: SystemInfo?
-    @Published var auditResult: OsqueryService.AuditResult?
+    @Published var auditResult: AuditResult?
     @Published var updates: [AppUpdateInfo] = []
     @Published var duplicateGroups: [DuplicateGroup] = []
     @Published var largeFiles: [LargeFile] = []
-    @Published var similarImages: [CzkawkaService.SimilarGroup] = []
-    @Published var tempFiles: [CzkawkaService.TempFileResult] = []
+    @Published var similarImages: [SimilarGroup] = []
+    @Published var tempFiles: [TempFileResult] = []
 
     var hasScanResults: Bool { !moduleSummaries.isEmpty }
 

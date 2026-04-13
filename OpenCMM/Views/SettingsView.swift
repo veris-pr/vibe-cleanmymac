@@ -111,7 +111,7 @@ struct SettingsView: View {
                                 .font(Theme.Font.body)
                                 .foregroundStyle(Theme.Colors.foreground)
                             Spacer()
-                            Text("v0.2.0")
+                            Text("v\(AppConstants.version)")
                                 .font(Theme.Font.mono)
                                 .foregroundStyle(Theme.Colors.muted)
                         }

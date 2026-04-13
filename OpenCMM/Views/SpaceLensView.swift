@@ -92,7 +92,7 @@ struct SpaceLensView: View {
 }
 
 struct SpaceLensRow: View {
-    let node: SpaceLensService.DiskNode
+    let node: DiskNode
     let parentSize: Int64
     let depth: Int
     @State private var isExpanded = false

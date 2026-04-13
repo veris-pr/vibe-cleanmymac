@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.opencmm.app", category: "CleaningService")
 
 actor CleaningService {
     private let home = FileUtils.homeDirectory()
@@ -27,7 +30,7 @@ actor CleaningService {
                 freed += item.size
             } catch {
                 // Log but continue with other items
-                print("Failed to clean \(item.path): \(error.localizedDescription)")
+                logger.error("Failed to clean \(item.path): \(error.localizedDescription)")
             }
         }
         return (cleaned, freed)
@@ -53,7 +56,7 @@ actor CleaningService {
                 let fullPath = "\(basePath)/\(entry)"
                 guard FileUtils.isDirectory(fullPath) else { continue }
                 let size = FileUtils.directorySize(at: fullPath)
-                if size > 1_000_000 { // Only show items > 1MB
+                if size > AppConstants.FileSize.minCacheSize { // Only show items > 1MB
                     items.append(CleanableItem(
                         name: entry,
                         path: fullPath,
@@ -103,7 +106,7 @@ actor CleaningService {
             let size = FileUtils.isDirectory(fullPath)
                 ? FileUtils.directorySize(at: fullPath)
                 : FileUtils.fileSize(at: fullPath)
-            if size > 100_000 {
+            if size > AppConstants.FileSize.minLogSize {
                 items.append(CleanableItem(name: entry, path: fullPath, size: size, category: .userLogs))
             }
         }

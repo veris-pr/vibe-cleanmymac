@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 class SpaceLensViewModel: ObservableObject {
-    @Published var rootNode: SpaceLensService.DiskNode?
+    @Published var rootNode: DiskNode?
     @Published var isScanning = false
     @Published var isGduInstalled = false
     @Published var isInstallingGdu = false

@@ -2,6 +2,8 @@ import SwiftUI
 
 @MainActor
 class AppState: ObservableObject {
+    static let hasCompletedSetupKey = "hasCompletedSetup"
+
     @Published var selectedModule: Module = .smartCare
     @Published var hasCompletedSetup: Bool
 
@@ -17,7 +19,7 @@ class AppState: ObservableObject {
     let spaceLensVM = SpaceLensViewModel()
 
     init() {
-        self.hasCompletedSetup = UserDefaults.standard.bool(forKey: "hasCompletedSetup")
+        self.hasCompletedSetup = UserDefaults.standard.bool(forKey: Self.hasCompletedSetupKey)
 
         // Wire scan store to all VMs
         smartCareVM.scanStore = scanStore
@@ -30,7 +32,7 @@ class AppState: ObservableObject {
 
     func completeSetup() {
         hasCompletedSetup = true
-        UserDefaults.standard.set(true, forKey: "hasCompletedSetup")
+        UserDefaults.standard.set(true, forKey: Self.hasCompletedSetupKey)
     }
 }
 
@@ -56,23 +58,6 @@ enum Module: String, CaseIterable, Identifiable {
         case .declutter: return "doc.on.doc"
         case .spaceLens: return "circle.grid.cross"
         case .settings: return "gearshape"
-        }
-    }
-
-    var color: Color {
-        .primary.opacity(0.7)
-    }
-
-    var description: String {
-        switch self {
-        case .smartCare: return "One scan. Five routines."
-        case .clean: return "Free up space for things you truly need"
-        case .protect: return "Neutralize threats before they do any harm"
-        case .speed: return "Make your slow Mac fast again"
-        case .update: return "Keep your apps up to date"
-        case .declutter: return "Take control of the clutter"
-        case .spaceLens: return "See what's taking up space"
-        case .settings: return "Manage tools and preferences"
         }
     }
 }

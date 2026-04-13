@@ -41,10 +41,6 @@ enum FileUtils {
         try fileManager.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resultingURL)
     }
 
-    static func removeItem(_ path: String) throws {
-        try fileManager.removeItem(atPath: path)
-    }
-
     static func contentsOfDirectory(_ path: String) -> [String] {
         (try? fileManager.contentsOfDirectory(atPath: path)) ?? []
     }

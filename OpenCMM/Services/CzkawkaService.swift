@@ -5,28 +5,6 @@ actor CzkawkaService {
     private let deps = DependencyManager.shared
     private let home = FileUtils.homeDirectory()
 
-    struct SimilarGroup: Identifiable {
-        let id = UUID()
-        var files: [SimilarFile]
-        let similarity: Double  // 0-100
-    }
-
-    struct SimilarFile: Identifiable {
-        let id = UUID()
-        let path: String
-        let name: String
-        let size: Int64
-        let modifiedDate: Date
-        var keepThis: Bool = false
-    }
-
-    struct TempFileResult: Identifiable {
-        let id = UUID()
-        let path: String
-        let name: String
-        let size: Int64
-    }
-
     var isAvailable: Bool {
         get async { await deps.isInstalled(.czkawka) }
     }
@@ -37,30 +15,8 @@ actor CzkawkaService {
         let existingPaths = searchPaths.filter { FileUtils.exists($0) }
         guard !existingPaths.isEmpty else { return [] }
 
-        let dirArgs = existingPaths.map { "-d \"\($0)\"" }.joined(separator: " ")
+        let dirArgs = existingPaths.map { "-d \(ShellExecutor.quote($0))" }.joined(separator: " ")
         guard let output = try? ShellExecutor.shell("\(cli) similar-images \(dirArgs) --json-compact 2>/dev/null") else { return [] }
-        return parseSimilarGroups(output)
-    }
-
-    func findSimilarVideos(in paths: [String]? = nil) async -> [SimilarGroup] {
-        guard let cli = await deps.path(for: .czkawka) else { return [] }
-        let searchPaths = paths ?? ["\(home)/Movies", "\(home)/Downloads", "\(home)/Desktop"]
-        let existingPaths = searchPaths.filter { FileUtils.exists($0) }
-        guard !existingPaths.isEmpty else { return [] }
-
-        let dirArgs = existingPaths.map { "-d \"\($0)\"" }.joined(separator: " ")
-        guard let output = try? ShellExecutor.shell("\(cli) similar-videos \(dirArgs) --json-compact 2>/dev/null") else { return [] }
-        return parseSimilarGroups(output)
-    }
-
-    func findSimilarMusic(in paths: [String]? = nil) async -> [SimilarGroup] {
-        guard let cli = await deps.path(for: .czkawka) else { return [] }
-        let searchPaths = paths ?? ["\(home)/Music", "\(home)/Downloads"]
-        let existingPaths = searchPaths.filter { FileUtils.exists($0) }
-        guard !existingPaths.isEmpty else { return [] }
-
-        let dirArgs = existingPaths.map { "-d \"\($0)\"" }.joined(separator: " ")
-        guard let output = try? ShellExecutor.shell("\(cli) same-music \(dirArgs) --json-compact 2>/dev/null") else { return [] }
         return parseSimilarGroups(output)
     }
 
@@ -70,19 +26,8 @@ actor CzkawkaService {
         let existingPaths = searchPaths.filter { FileUtils.exists($0) }
         guard !existingPaths.isEmpty else { return [] }
 
-        let dirArgs = existingPaths.map { "-d \"\($0)\"" }.joined(separator: " ")
+        let dirArgs = existingPaths.map { "-d \(ShellExecutor.quote($0))" }.joined(separator: " ")
         guard let output = try? ShellExecutor.shell("\(cli) temporary \(dirArgs) --json-compact 2>/dev/null") else { return [] }
-        return parseTempFiles(output)
-    }
-
-    func findEmptyFiles(in paths: [String]? = nil) async -> [TempFileResult] {
-        guard let cli = await deps.path(for: .czkawka) else { return [] }
-        let searchPaths = paths ?? ["\(home)/Documents", "\(home)/Downloads", "\(home)/Desktop"]
-        let existingPaths = searchPaths.filter { FileUtils.exists($0) }
-        guard !existingPaths.isEmpty else { return [] }
-
-        let dirArgs = existingPaths.map { "-d \"\($0)\"" }.joined(separator: " ")
-        guard let output = try? ShellExecutor.shell("\(cli) empty-files \(dirArgs) --json-compact 2>/dev/null") else { return [] }
         return parseTempFiles(output)
     }
 

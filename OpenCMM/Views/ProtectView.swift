@@ -183,7 +183,7 @@ struct ProtectView: View {
         )
     }
 
-    private func auditSection(_ audit: OsqueryService.AuditResult) -> some View {
+    private func auditSection(_ audit: AuditResult) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             SectionHeaderRow(title: "System Audit", trailing: viewModel.isOsqueryInstalled ? "via osquery" : nil)
                 .padding(.horizontal, Theme.Spacing.lg)
