@@ -181,7 +181,9 @@ struct DeclutterView: View {
                     label: "Wasted space: \(Formatters.fileSize(viewModel.totalWastedSpace))",
                     buttonTitle: "Remove Duplicates",
                     isWorking: viewModel.isRemoving,
-                    action: { viewModel.showConfirmation = true }
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Scan Again",
+                    secondaryAction: { viewModel.startScan() }
                 )
             }
         }
