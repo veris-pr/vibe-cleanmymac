@@ -83,42 +83,19 @@ struct SmartCareView: View {
 
     private var resultsView: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.xl) {
-                // Health score
-                VStack(spacing: Theme.Spacing.md) {
-                    ProgressRing(
-                        progress: Double(scanStore.healthScore) / 100.0,
-                        size: 88, lineWidth: 7,
-                        thresholds: true, invertedThresholds: true
-                    )
-                    Text("Health Score")
-                        .font(Theme.Font.heading)
-                        .foregroundStyle(Theme.Colors.foreground)
-                    if scanStore.healthScore >= 80 {
-                        Text("Your Mac is in great shape")
-                            .font(Theme.Font.body)
-                            .foregroundStyle(Theme.Colors.success)
-                    } else {
-                        Text("Check the modules below for details")
-                            .font(Theme.Font.body)
-                            .foregroundStyle(Theme.Colors.muted)
-                    }
-
-                    // Last scanned date
-                    if let lastDate = scanStore.lastScanDate {
-                        Text("Last scanned \(Formatters.relativeDate(lastDate))")
-                            .font(Theme.Font.caption)
-                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
-                    }
+            VStack(spacing: Theme.Spacing.md) {
+                // Last scanned date
+                if let lastDate = scanStore.lastScanDate {
+                    Text("Last scanned \(Formatters.relativeDate(lastDate))")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                        .padding(.top, Theme.Spacing.md)
                 }
-                .padding(.top, Theme.Spacing.lg)
 
-                // Module cards grid
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Theme.Spacing.md)], spacing: Theme.Spacing.md) {
-                    ForEach(scanStore.orderedSummaries) { summary in
-                        ModuleCard(summary: summary) {
-                            appState.selectedModule = summary.module
-                        }
+                // Module cards — full width
+                ForEach(scanStore.orderedSummaries) { summary in
+                    ModuleCard(summary: summary) {
+                        appState.selectedModule = summary.module
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

@@ -16,7 +16,6 @@ class SmartCareViewModel: ObservableObject {
     private let performanceService = PerformanceService()
     private let updateService = UpdateService()
     private let duplicateService = DuplicateFinderService()
-    private let systemInfoService = SystemInfoService()
 
     func startScan() {
         scanTask?.cancel()
@@ -123,8 +122,6 @@ class SmartCareViewModel: ObservableObject {
 
         guard !Task.isCancelled else { return }
 
-        let score = await systemInfoService.healthScore()
-
         // Persist full results and summaries to shared ScanStore
         if let store = scanStore {
             for output in outputs {
@@ -136,7 +133,7 @@ class SmartCareViewModel: ObservableObject {
                 case .declutter(let groups, _): store.duplicateGroups = groups
                 }
             }
-            store.updateAll(collectedSummaries, healthScore: score, scanMode: .quick)
+            store.updateAll(collectedSummaries, scanMode: .quick)
         }
 
         isScanning = false

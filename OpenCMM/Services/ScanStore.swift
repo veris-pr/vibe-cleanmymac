@@ -8,7 +8,6 @@ class ScanStore: ObservableObject {
     @Published private(set) var moduleSummaries: [Module: ModuleScanSummary] = [:]
     @Published private(set) var lastScanDate: Date?
     @Published private(set) var lastScanMode: ScanMode?
-    @Published private(set) var healthScore: Int = 0
 
     // MARK: - Detailed results (shared across modules)
     @Published var cleanResults: [ScanResult] = []
@@ -34,11 +33,10 @@ class ScanStore: ObservableObject {
     }
 
     /// Update all summaries at once (called by Overview full scan).
-    func updateAll(_ summaries: [ModuleScanSummary], healthScore: Int, scanMode: ScanMode) {
+    func updateAll(_ summaries: [ModuleScanSummary], scanMode: ScanMode) {
         for summary in summaries {
             moduleSummaries[summary.module] = summary
         }
-        self.healthScore = healthScore
         self.lastScanMode = scanMode
         lastScanDate = Date()
     }
