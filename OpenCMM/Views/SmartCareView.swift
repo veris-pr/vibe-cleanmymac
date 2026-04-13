@@ -10,7 +10,7 @@ struct SmartCareView: View {
             moduleHeader(
                 icon: "square.grid.2x2",
                 title: "Overview",
-                subtitle: "One scan. Four routines."
+                subtitle: "One scan. Five routines."
             )
 
             Divider()
@@ -54,7 +54,7 @@ struct SmartCareView: View {
                     Text(viewModel.currentStep)
                         .font(Theme.Font.heading)
                         .foregroundStyle(Theme.Colors.foreground)
-                    Text("Scanning \(Int(viewModel.progress * 4)) of 4 modules")
+                    Text("Scanning \(Int(viewModel.progress * 5)) of 5 modules")
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.muted)
                 }
