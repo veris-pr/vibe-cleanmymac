@@ -6,8 +6,7 @@ struct DeclutterView: View {
     var body: some View {
         VStack(spacing: 0) {
             moduleHeader(
-                icon: "square.on.square.dashed",
-                color: .pink,
+                icon: "doc.on.doc",
                 title: "Declutter",
                 subtitle: "Take control of the clutter"
             )
@@ -16,7 +15,13 @@ struct DeclutterView: View {
 
             if viewModel.isScanning {
                 Spacer()
-                ProgressView("Scanning for duplicates and large files...")
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Scanning for duplicates and large files...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if viewModel.scanComplete {
                 // Tab picker
@@ -26,7 +31,8 @@ struct DeclutterView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.vertical, Theme.Spacing.md)
 
                 switch viewModel.selectedTab {
                 case .duplicates:
@@ -36,67 +42,59 @@ struct DeclutterView: View {
                 }
             } else {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text("Curb the file chaos by removing duplicates and similar photos. Find large and forgotten items to ensure you always have enough space.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-
-                    ScanButton(title: "Scan", color: .pink) {
-                        Task { await viewModel.scan() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "doc.on.doc",
+                    message: "Find clutter",
+                    detail: "Remove duplicates, discover large forgotten files, and reclaim wasted storage space.",
+                    buttonTitle: "Scan",
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
     }
 
     private var duplicatesView: some View {
         Group {
             if viewModel.duplicateGroups.isEmpty {
                 Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("No duplicates found")
-                        .font(.title3)
-                }
+                SuccessStateView(
+                    message: "No duplicates found",
+                    detail: nil,
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             } else {
                 List {
                     ForEach(viewModel.duplicateGroups) { group in
                         Section {
                             ForEach(group.files) { file in
-                                HStack {
-                                    Image(systemName: file.keepThis ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(file.keepThis ? .green : .secondary)
-                                    VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: Theme.Spacing.sm) {
+                                    Image(systemName: file.keepThis ? "checkmark.circle" : "circle")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(file.keepThis ? Theme.Colors.success : Theme.Colors.muted)
+                                    VStack(alignment: .leading, spacing: 1) {
                                         Text(file.name)
-                                            .font(.body)
+                                            .font(Theme.Font.body)
+                                            .foregroundStyle(Theme.Colors.foreground)
                                         Text(file.path)
-                                            .font(.caption)
-                                            .foregroundStyle(.tertiary)
+                                            .font(Theme.Font.caption)
+                                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
                                             .lineLimit(1)
                                             .truncationMode(.middle)
                                     }
                                     Spacer()
                                     Text(Formatters.fileSize(file.size))
-                                        .font(.body.monospacedDigit())
-                                        .foregroundStyle(.secondary)
+                                        .font(Theme.Font.monoSmall)
+                                        .foregroundStyle(Theme.Colors.secondary)
                                 }
                             }
                         } header: {
-                            HStack {
-                                Text("\(group.files.count) duplicates")
-                                    .font(.headline)
-                                Spacer()
-                                Text("Wasted: \(Formatters.fileSize(group.wastedSpace))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.pink)
-                            }
+                            SectionHeaderRow(
+                                title: "\(group.files.count) duplicates",
+                                trailing: "Wasted: \(Formatters.fileSize(group.wastedSpace))"
+                            )
                         }
                     }
                 }
@@ -105,7 +103,6 @@ struct DeclutterView: View {
                 actionBar(
                     label: "Wasted space: \(Formatters.fileSize(viewModel.totalWastedSpace))",
                     buttonTitle: "Remove Duplicates",
-                    buttonColor: .pink,
                     isWorking: viewModel.isRemoving,
                     action: { Task { await viewModel.removeDuplicates() } }
                 )
@@ -117,18 +114,16 @@ struct DeclutterView: View {
         Group {
             if viewModel.largeFiles.isEmpty {
                 Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("No large files found")
-                        .font(.title3)
-                }
+                SuccessStateView(
+                    message: "No large files found",
+                    detail: nil,
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             } else {
                 List {
                     ForEach(viewModel.largeFiles) { file in
-                        HStack {
+                        HStack(spacing: Theme.Spacing.sm) {
                             Toggle("", isOn: Binding(
                                 get: { file.isSelected },
                                 set: { _ in viewModel.toggleLargeFile(file.id) }
@@ -136,27 +131,29 @@ struct DeclutterView: View {
                             .toggleStyle(.checkbox)
                             .labelsHidden()
 
-                            Image(systemName: "doc.fill")
-                                .foregroundStyle(.pink)
-                                .frame(width: 24)
+                            Image(systemName: "doc")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.Colors.muted)
+                                .frame(width: 20)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(file.name)
-                                    .font(.body)
-                                HStack {
+                                    .font(Theme.Font.body)
+                                    .foregroundStyle(Theme.Colors.foreground)
+                                HStack(spacing: 4) {
                                     Text(file.path)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                     Text("·")
                                     Text("Last used \(Formatters.relativeDate(file.lastAccessed))")
                                 }
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.muted)
                             }
                             Spacer()
                             Text(Formatters.fileSize(file.size))
-                                .font(.body.monospacedDigit().bold())
-                                .foregroundStyle(.pink)
+                                .font(Theme.Font.mono)
+                                .foregroundStyle(Theme.Colors.foreground)
                         }
                     }
                 }
@@ -165,7 +162,6 @@ struct DeclutterView: View {
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalLargeFilesSize)) selected",
                     buttonTitle: "Move to Trash",
-                    buttonColor: .pink,
                     isWorking: viewModel.isRemoving,
                     action: { Task { await viewModel.removeLargeFiles() } }
                 )

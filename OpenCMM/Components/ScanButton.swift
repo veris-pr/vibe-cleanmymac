@@ -2,18 +2,23 @@ import SwiftUI
 
 struct ScanButton: View {
     let title: String
-    let color: Color
+    var icon: String = "arrow.right"
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: "magnifyingglass")
-                .font(.title3)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 12)
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(Theme.Font.bodyMedium)
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(Color.primary.opacity(0.85))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
         }
-        .buttonStyle(.borderedProminent)
-        .tint(color)
-        .controlSize(.large)
+        .buttonStyle(.plain)
     }
 }

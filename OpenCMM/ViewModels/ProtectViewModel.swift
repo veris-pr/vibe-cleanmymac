@@ -21,10 +21,10 @@ class ProtectViewModel: ObservableObject {
     }
 
     var statusColor: Color {
-        if !scanComplete { return .secondary }
-        if threats.isEmpty { return .green }
-        if criticalCount > 0 { return .red }
-        return .orange
+        if !scanComplete { return Theme.Colors.secondary }
+        if threats.isEmpty { return Theme.Colors.success }
+        if criticalCount > 0 { return Theme.Colors.destructive }
+        return Theme.Colors.muted
     }
 
     func scan() async {

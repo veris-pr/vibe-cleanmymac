@@ -15,7 +15,7 @@ struct OpenCMMApp: App {
         .windowToolbarStyle(.unified(showsTitle: true))
         .defaultSize(width: 900, height: 620)
 
-        MenuBarExtra("OpenCMM", systemImage: "leaf.fill") {
+        MenuBarExtra("OpenCMM", systemImage: "leaf") {
             MenuBarView()
                 .environmentObject(appState)
         }

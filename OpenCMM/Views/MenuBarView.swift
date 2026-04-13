@@ -6,11 +6,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 4) {
             Button("Open OpenCMM") {
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
-                if let window = NSApp.windows.first(where: { $0.isKeyWindow == false }) {
-                    window.makeKeyAndOrderFront(nil)
-                }
+                activateApp()
             }
             .keyboardShortcut("o")
 
@@ -18,20 +14,17 @@ struct MenuBarView: View {
 
             Button("Quick Clean") {
                 appState.selectedModule = .clean
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                activateApp()
             }
 
             Button("Check Threats") {
                 appState.selectedModule = .protect
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                activateApp()
             }
 
             Button("System Status") {
                 appState.selectedModule = .speed
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                activateApp()
             }
 
             Divider()
@@ -40,6 +33,14 @@ struct MenuBarView: View {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q")
+        }
+    }
+
+    private func activateApp() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = NSApp.windows.first(where: { $0.canBecomeKey }) {
+            window.makeKeyAndOrderFront(nil)
         }
     }
 }

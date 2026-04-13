@@ -6,8 +6,7 @@ struct SpeedView: View {
     var body: some View {
         VStack(spacing: 0) {
             moduleHeader(
-                icon: "gauge.with.dots.needle.67percent",
-                color: .purple,
+                icon: "gauge.with.needle",
                 title: "Speed",
                 subtitle: "Make your slow Mac fast again"
             )
@@ -16,166 +15,181 @@ struct SpeedView: View {
 
             if viewModel.isLoading {
                 Spacer()
-                ProgressView("Loading system info...")
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Loading system info...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if let info = viewModel.systemInfo {
                 ScrollView {
-                    VStack(spacing: 20) {
-                        // System overview cards
-                        HStack(spacing: 16) {
-                            gaugeCard(
-                                title: "CPU",
-                                value: info.cpuUsage,
-                                detail: Formatters.percentage(info.cpuUsage),
-                                color: gaugeColor(info.cpuUsage)
+                    VStack(spacing: Theme.Spacing.lg) {
+                        // Gauges
+                        HStack(spacing: Theme.Spacing.md) {
+                            statCard(
+                                label: "CPU",
+                                value: Formatters.percentage(info.cpuUsage),
+                                progress: info.cpuUsage / 100.0
                             )
-                            gaugeCard(
-                                title: "Memory",
-                                value: info.memoryUsedPercent,
-                                detail: "\(Formatters.fileSize(info.memoryUsed)) / \(Formatters.fileSize(info.memoryTotal))",
-                                color: gaugeColor(info.memoryUsedPercent)
+                            statCard(
+                                label: "Memory",
+                                value: "\(Formatters.fileSize(info.memoryUsed)) / \(Formatters.fileSize(info.memoryTotal))",
+                                progress: info.memoryUsedPercent / 100.0
                             )
-                            gaugeCard(
-                                title: "Disk",
-                                value: info.diskUsedPercent,
-                                detail: "\(Formatters.fileSize(info.diskFree)) free",
-                                color: gaugeColor(info.diskUsedPercent)
+                            statCard(
+                                label: "Disk",
+                                value: "\(Formatters.fileSize(info.diskFree)) free",
+                                progress: info.diskUsedPercent / 100.0
                             )
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, Theme.Spacing.lg)
 
                         // Quick actions
-                        HStack(spacing: 12) {
+                        HStack(spacing: Theme.Spacing.sm) {
                             Button(action: { Task { await viewModel.purgeMemory() } }) {
-                                Label(viewModel.isPurging ? "Freeing..." : "Free Up RAM", systemImage: "memorychip")
+                                HStack(spacing: 6) {
+                                    Image(systemName: "memorychip")
+                                        .font(.system(size: 11))
+                                    Text(viewModel.isPurging ? "Freeing..." : "Free Up RAM")
+                                        .font(Theme.Font.bodyMedium)
+                                }
                             }
                             .buttonStyle(.bordered)
+                            .controlSize(.regular)
                             .disabled(viewModel.isPurging)
 
                             Button(action: { Task { await viewModel.refresh() } }) {
-                                Label("Refresh", systemImage: "arrow.clockwise")
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 11))
+                                    Text("Refresh")
+                                        .font(Theme.Font.bodyMedium)
+                                }
                             }
                             .buttonStyle(.bordered)
+                            .controlSize(.regular)
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, Theme.Spacing.lg)
 
-                        // Login items
-                        GroupBox {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Startup Items")
-                                    .font(.headline)
-                                    .padding(.bottom, 4)
+                        // Startup items
+                        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                            Text("Startup Items")
+                                .font(Theme.Font.heading)
+                                .foregroundStyle(Theme.Colors.foreground)
+                                .padding(.bottom, Theme.Spacing.xs)
 
-                                if viewModel.loginItems.isEmpty {
-                                    Text("No startup items found")
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    ForEach(viewModel.loginItems) { item in
-                                        HStack {
-                                            Circle()
-                                                .fill(item.isEnabled ? .green : .gray)
-                                                .frame(width: 8, height: 8)
-                                            VStack(alignment: .leading, spacing: 1) {
-                                                Text(item.name)
-                                                    .font(.body)
-                                                    .lineLimit(1)
-                                                Text(item.kind.rawValue)
-                                                    .font(.caption)
-                                                    .foregroundStyle(.tertiary)
-                                            }
-                                            Spacer()
-                                            if item.isEnabled {
-                                                Button("Disable") { Task { await viewModel.disableLoginItem(item) } }
-                                                    .buttonStyle(.bordered)
-                                                    .controlSize(.small)
-                                            } else {
-                                                Button("Enable") { Task { await viewModel.enableLoginItem(item) } }
-                                                    .buttonStyle(.bordered)
-                                                    .controlSize(.small)
+                            if viewModel.loginItems.isEmpty {
+                                Text("No startup items found")
+                                    .font(Theme.Font.body)
+                                    .foregroundStyle(Theme.Colors.muted)
+                            } else {
+                                ForEach(viewModel.loginItems) { item in
+                                    HStack(spacing: Theme.Spacing.sm) {
+                                        Circle()
+                                            .fill(item.isEnabled ? Theme.Colors.success : Theme.Colors.muted.opacity(0.3))
+                                            .frame(width: 6, height: 6)
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text(item.name)
+                                                .font(Theme.Font.body)
+                                                .foregroundStyle(Theme.Colors.foreground)
+                                                .lineLimit(1)
+                                            Text(item.kind.rawValue)
+                                                .font(Theme.Font.caption)
+                                                .foregroundStyle(Theme.Colors.muted)
+                                        }
+                                        Spacer()
+                                        Button(item.isEnabled ? "Disable" : "Enable") {
+                                            Task {
+                                                if item.isEnabled {
+                                                    await viewModel.disableLoginItem(item)
+                                                } else {
+                                                    await viewModel.enableLoginItem(item)
+                                                }
                                             }
                                         }
-                                        .padding(.vertical, 2)
+                                        .font(Theme.Font.caption)
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                    .padding(.vertical, 2)
+                                    if item.id != viewModel.loginItems.last?.id {
                                         Divider()
                                     }
                                 }
                             }
-                            .padding(8)
                         }
-                        .padding(.horizontal)
+                        .cardStyle()
+                        .padding(.horizontal, Theme.Spacing.lg)
 
                         // System details
-                        GroupBox {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("System Details")
-                                    .font(.headline)
-                                    .padding(.bottom, 4)
-                                detailRow("Computer", info.hostname)
-                                detailRow("macOS", info.osVersion)
-                                detailRow("Uptime", Formatters.duration(info.uptime))
-                            }
-                            .padding(8)
+                        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                            Text("System")
+                                .font(Theme.Font.heading)
+                                .foregroundStyle(Theme.Colors.foreground)
+                                .padding(.bottom, Theme.Spacing.xs)
+                            detailRow("Computer", info.hostname)
+                            Divider()
+                            detailRow("macOS", info.osVersion)
+                            Divider()
+                            detailRow("Uptime", Formatters.duration(info.uptime))
                         }
-                        .padding(.horizontal)
+                        .cardStyle()
+                        .padding(.horizontal, Theme.Spacing.lg)
                     }
-                    .padding(.vertical)
+                    .padding(.vertical, Theme.Spacing.lg)
                 }
             } else {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text("Multitasking, editing, or whatever you're doing — your Mac will run efficiently. Control memory and CPU load to keep your Mac productive.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-
-                    ScanButton(title: "Analyze", color: .purple) {
-                        Task { await viewModel.loadData() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "gauge.with.needle",
+                    message: "Analyze performance",
+                    detail: "View real-time CPU, memory, and disk usage. Manage startup items and free up RAM.",
+                    buttonTitle: "Analyze",
+                    action: { Task { await viewModel.loadData() } }
+                )
                 Spacer()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
     }
 
-    private func gaugeCard(title: String, value: Double, detail: String, color: Color) -> some View {
-        VStack(spacing: 8) {
+    private func statCard(label: String, value: String, progress: Double) -> some View {
+        VStack(spacing: Theme.Spacing.sm) {
             ZStack {
                 Circle()
-                    .stroke(.quaternary, lineWidth: 6)
+                    .stroke(Theme.Colors.border, lineWidth: 4)
                 Circle()
-                    .trim(from: 0, to: value / 100.0)
-                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.primary.opacity(0.6), style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                Text(Formatters.percentage(value))
-                    .font(.system(.body, design: .rounded, weight: .semibold))
+                Text(Formatters.percentage(progress * 100))
+                    .font(Theme.Font.monoSmall)
+                    .foregroundStyle(Theme.Colors.foreground)
             }
-            .frame(width: 80, height: 80)
-            Text(title)
-                .font(.headline)
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .frame(width: 64, height: 64)
+            Text(label)
+                .font(Theme.Font.heading)
+                .foregroundStyle(Theme.Colors.foreground)
+            Text(value)
+                .font(Theme.Font.caption)
+                .foregroundStyle(Theme.Colors.muted)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(.quaternary.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .foregroundStyle(.secondary)
+                .font(Theme.Font.body)
+                .foregroundStyle(Theme.Colors.muted)
             Spacer()
             Text(value)
-                .fontWeight(.medium)
+                .font(Theme.Font.bodyMedium)
+                .foregroundStyle(Theme.Colors.foreground)
         }
-    }
-
-    private func gaugeColor(_ value: Double) -> Color {
-        if value >= 80 { return .red }
-        if value >= 60 { return .orange }
-        return .green
     }
 }

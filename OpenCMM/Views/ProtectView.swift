@@ -6,8 +6,7 @@ struct ProtectView: View {
     var body: some View {
         VStack(spacing: 0) {
             moduleHeader(
-                icon: "shield.checkered",
-                color: .green,
+                icon: "shield",
                 title: "Protect",
                 subtitle: "Neutralize threats before they do any harm"
             )
@@ -16,47 +15,31 @@ struct ProtectView: View {
 
             if viewModel.isScanning {
                 Spacer()
-                ProgressView("Scanning for threats...")
-                    .padding()
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Scanning for threats...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if viewModel.scanComplete {
                 // Status banner
-                HStack(spacing: 12) {
-                    Image(systemName: viewModel.threats.isEmpty ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
-                        .font(.title)
-                        .foregroundStyle(viewModel.statusColor)
-                    VStack(alignment: .leading) {
-                        Text(viewModel.statusMessage)
-                            .font(.headline)
-                        if !viewModel.threats.isEmpty {
-                            Text("\(viewModel.criticalCount) critical · \(viewModel.warningCount) warnings")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding()
-                .background(viewModel.statusColor.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding()
+                statusBanner
+                    .padding(Theme.Spacing.lg)
 
                 if viewModel.threats.isEmpty {
                     Spacer()
-                    VStack(spacing: 12) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.green)
-                        Text("Your Mac is secure")
-                            .font(.title3)
-                        Button("Scan Again") { Task { await viewModel.scan() } }
-                            .buttonStyle(.bordered)
-                    }
+                    SuccessStateView(
+                        message: "Your Mac is secure",
+                        detail: "No threats or privacy risks detected.",
+                        action: { Task { await viewModel.scan() } }
+                    )
                     Spacer()
                 } else {
                     List {
                         ForEach(viewModel.threats) { threat in
-                            HStack {
+                            HStack(spacing: Theme.Spacing.sm) {
                                 Toggle("", isOn: Binding(
                                     get: { threat.isSelected },
                                     set: { _ in viewModel.toggleThreat(threat.id) }
@@ -65,30 +48,28 @@ struct ProtectView: View {
                                 .labelsHidden()
 
                                 Image(systemName: threat.threatType.icon)
-                                    .foregroundStyle(threat.severity == .critical ? .red : .orange)
-                                    .frame(width: 24)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
+                                    .frame(width: 20)
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    HStack {
+                                    HStack(spacing: 6) {
                                         Text(threat.name)
-                                            .font(.body)
+                                            .font(Theme.Font.body)
+                                            .foregroundStyle(Theme.Colors.foreground)
                                         Text(threat.threatType.rawValue)
-                                            .font(.caption)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(threat.severity == .critical ? Color.red.opacity(0.2) : Color.orange.opacity(0.2))
-                                            .clipShape(Capsule())
+                                            .badgeStyle()
                                     }
                                     Text(threat.path)
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
+                                        .font(Theme.Font.caption)
+                                        .foregroundStyle(Theme.Colors.muted.opacity(0.7))
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                 }
                                 Spacer()
                                 Text(threat.severity.rawValue)
-                                    .font(.caption)
-                                    .foregroundStyle(threat.severity == .critical ? .red : .orange)
+                                    .font(Theme.Font.caption)
+                                    .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
                             }
                         }
                     }
@@ -97,27 +78,48 @@ struct ProtectView: View {
                     actionBar(
                         label: "\(viewModel.threats.filter(\.isSelected).count) threat(s) selected",
                         buttonTitle: "Remove",
-                        buttonColor: .red,
                         isWorking: viewModel.isRemoving,
                         action: { Task { await viewModel.removeThreats() } }
                     )
                 }
             } else {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text("Spot and remove malware that may hide within seemingly innocent software. Stay secure, knowing your Mac is always protected.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-
-                    ScanButton(title: "Scan", color: .green) {
-                        Task { await viewModel.scan() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "shield",
+                    message: "Check for threats",
+                    detail: "Spot and remove malware hiding within seemingly innocent software. Scan for privacy risks like browser history and cookies.",
+                    buttonTitle: "Scan",
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
+    }
+
+    private var statusBanner: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: viewModel.threats.isEmpty ? "checkmark.shield" : "exclamationmark.shield")
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(viewModel.threats.isEmpty ? Theme.Colors.success : Theme.Colors.destructive)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.statusMessage)
+                    .font(Theme.Font.heading)
+                    .foregroundStyle(Theme.Colors.foreground)
+                if !viewModel.threats.isEmpty {
+                    Text("\(viewModel.criticalCount) critical · \(viewModel.warningCount) warnings")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
+            }
+            Spacer()
+        }
+        .padding(Theme.Spacing.lg)
+        .background(Theme.Colors.subtle)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.md)
+                .stroke(Theme.Colors.border, lineWidth: 1)
+        )
     }
 }

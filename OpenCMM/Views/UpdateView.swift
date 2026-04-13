@@ -6,8 +6,7 @@ struct UpdateView: View {
     var body: some View {
         VStack(spacing: 0) {
             moduleHeader(
-                icon: "arrow.triangle.2.circlepath",
-                color: .cyan,
+                icon: "arrow.down.circle",
                 title: "Update",
                 subtitle: "Keep your apps up to date"
             )
@@ -16,25 +15,27 @@ struct UpdateView: View {
 
             if viewModel.isChecking {
                 Spacer()
-                ProgressView("Checking for updates...")
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Checking for updates...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if viewModel.checkComplete {
                 if viewModel.updates.isEmpty {
                     Spacer()
-                    VStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.green)
-                        Text("All apps are up to date")
-                            .font(.title3)
-                        Button("Check Again") { Task { await viewModel.checkForUpdates() } }
-                            .buttonStyle(.bordered)
-                    }
+                    SuccessStateView(
+                        message: "All apps are up to date",
+                        detail: nil,
+                        action: { Task { await viewModel.checkForUpdates() } }
+                    )
                     Spacer()
                 } else {
                     List {
                         ForEach(viewModel.updates) { app in
-                            HStack {
+                            HStack(spacing: Theme.Spacing.sm) {
                                 Toggle("", isOn: Binding(
                                     get: { app.isSelected },
                                     set: { _ in viewModel.toggleApp(app.id) }
@@ -42,33 +43,32 @@ struct UpdateView: View {
                                 .toggleStyle(.checkbox)
                                 .labelsHidden()
 
-                                Image(systemName: "app.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(.cyan)
-                                    .frame(width: 32)
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundStyle(Theme.Colors.muted)
+                                    .frame(width: 24)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(app.name)
-                                        .font(.body.bold())
+                                        .font(Theme.Font.bodyMedium)
+                                        .foregroundStyle(Theme.Colors.foreground)
                                     Text("\(app.currentVersion) → \(app.availableVersion)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(Theme.Font.caption)
+                                        .foregroundStyle(Theme.Colors.muted)
                                 }
                                 Spacer()
+
                                 Text(app.source.rawValue)
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(.quaternary)
-                                    .clipShape(Capsule())
+                                    .badgeStyle()
 
                                 Button("Update") {
                                     Task { await viewModel.updateSingle(app) }
                                 }
+                                .font(Theme.Font.caption)
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 3)
                         }
                     }
                     .listStyle(.inset)
@@ -76,27 +76,22 @@ struct UpdateView: View {
                     actionBar(
                         label: "\(viewModel.selectedCount) of \(viewModel.updateCount) selected",
                         buttonTitle: "Update All",
-                        buttonColor: .cyan,
                         isWorking: viewModel.isUpdating,
                         action: { Task { await viewModel.updateSelected() } }
                     )
                 }
             } else {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text("Stopped using an app? Update all your software right here to improve app security and stability.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-
-                    ScanButton(title: "Check for Updates", color: .cyan) {
-                        Task { await viewModel.checkForUpdates() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "arrow.down.circle",
+                    message: "Check for updates",
+                    detail: "Update all your Homebrew apps to improve security and stability.",
+                    buttonTitle: "Check for Updates",
+                    action: { Task { await viewModel.checkForUpdates() } }
+                )
                 Spacer()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
     }
 }

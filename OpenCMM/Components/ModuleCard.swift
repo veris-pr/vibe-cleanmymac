@@ -4,51 +4,46 @@ struct ModuleCard: View {
     let summary: ModuleScanSummary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            HStack(spacing: Theme.Spacing.sm) {
                 Image(systemName: summary.module.icon)
-                    .font(.title3)
-                    .foregroundStyle(summary.module.color)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Theme.Colors.secondary)
                 Text(summary.module.rawValue)
-                    .font(.headline)
+                    .font(Theme.Font.heading)
+                    .foregroundStyle(Theme.Colors.foreground)
                 Spacer()
                 if summary.hasIssues {
                     Text("\(summary.itemCount)")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(summary.module.color.opacity(0.2))
-                        .clipShape(Capsule())
+                        .badgeStyle()
                 } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.success)
                 }
             }
 
             if summary.totalSize > 0 {
                 Text(Formatters.fileSize(summary.totalSize))
-                    .font(.title3.bold().monospacedDigit())
-                    .foregroundStyle(summary.module.color)
+                    .font(Theme.Font.mono)
+                    .foregroundStyle(Theme.Colors.foreground)
             }
 
             if !summary.issues.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     ForEach(summary.issues.prefix(3), id: \.self) { issue in
-                        Text("• \(issue)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(issue)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
                             .lineLimit(1)
                     }
                 }
             } else {
                 Text("No issues found")
-                    .font(.caption)
-                    .foregroundStyle(.green)
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.success)
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 }

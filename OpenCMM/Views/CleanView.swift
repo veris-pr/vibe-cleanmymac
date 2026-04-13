@@ -5,10 +5,8 @@ struct CleanView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             moduleHeader(
                 icon: "trash",
-                color: .orange,
                 title: "Clean",
                 subtitle: "Free up space for things you truly need"
             )
@@ -17,90 +15,66 @@ struct CleanView: View {
 
             if viewModel.isScanning {
                 Spacer()
-                ProgressView("Scanning for junk files...")
-                    .padding()
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Scanning for junk files...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if viewModel.scanComplete && !viewModel.scanResults.isEmpty {
-                // Results list
                 List {
                     ForEach(Array(viewModel.scanResults.enumerated()), id: \.element.id) { index, result in
                         Section {
                             ForEach(result.items) { item in
-                                HStack {
-                                    Image(systemName: item.category.icon)
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 24)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.name)
-                                            .font(.body)
-                                        Text(item.path)
-                                            .font(.caption)
-                                            .foregroundStyle(.tertiary)
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
-                                    }
-                                    Spacer()
-                                    Text(Formatters.fileSize(item.size))
-                                        .font(.body.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(.vertical, 2)
+                                FileRow(
+                                    icon: item.category.icon,
+                                    name: item.name,
+                                    path: item.path,
+                                    trailing: Formatters.fileSize(item.size)
+                                )
                             }
                         } header: {
-                            HStack {
-                                Toggle(isOn: Binding(
+                            SectionHeaderRow(
+                                title: result.category,
+                                trailing: Formatters.fileSize(result.totalSize),
+                                isOn: Binding(
                                     get: { result.isSelected },
                                     set: { _ in viewModel.toggleCategory(index) }
-                                )) {
-                                    Text(result.category)
-                                        .font(.headline)
-                                }
-                                Spacer()
-                                Text(Formatters.fileSize(result.totalSize))
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(.orange)
-                            }
+                                )
+                            )
                         }
                     }
                 }
                 .listStyle(.inset)
 
-                // Bottom bar
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalSize)) to clean",
                     buttonTitle: "Clean",
-                    buttonColor: .orange,
                     isWorking: viewModel.isCleaning,
                     action: { Task { await viewModel.clean() } }
                 )
             } else if viewModel.lastCleanedSize > 0 {
                 Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("Cleaned \(Formatters.fileSize(viewModel.lastCleanedSize))")
-                        .font(.title2.bold())
-                    Button("Scan Again") { Task { await viewModel.scan() } }
-                        .buttonStyle(.bordered)
-                }
+                SuccessStateView(
+                    message: "Cleaned \(Formatters.fileSize(viewModel.lastCleanedSize))",
+                    detail: "Your Mac has more breathing room now.",
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             } else {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text("Clear out hidden system junk to make room for your apps, photos, and other important stuff.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-
-                    ScanButton(title: "Scan", color: .orange) {
-                        Task { await viewModel.scan() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "trash",
+                    message: "Find hidden junk",
+                    detail: "Clear out system caches, browser data, logs, and outdated files to reclaim disk space.",
+                    buttonTitle: "Scan",
+                    action: { Task { await viewModel.scan() } }
+                )
                 Spacer()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Theme.Colors.background)
     }
 }
