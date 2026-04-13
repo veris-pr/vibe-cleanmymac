@@ -15,8 +15,13 @@ struct UninstallView: View {
 
             if viewModel.isLoading {
                 Spacer()
-                ProgressView("Scanning applications...")
-                    .font(Theme.Font.body)
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Scanning applications...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if let app = viewModel.selectedApp {
                 appDetailView(app)
@@ -36,6 +41,7 @@ struct UninstallView: View {
                 .padding()
             }
         }
+        .background(Theme.Colors.background)
         .task {
             if viewModel.apps.isEmpty {
                 await viewModel.loadApps()
@@ -96,7 +102,7 @@ struct UninstallView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Theme.Colors.muted.opacity(0.1))
-                .cornerRadius(8)
+                .cornerRadius(Theme.Radius.md)
 
                 Picker("Sort", selection: Binding(
                     get: { viewModel.sortOrder },
@@ -195,7 +201,7 @@ struct UninstallView: View {
                     Spacer()
 
                     Text(Formatters.fileSize(app.size))
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(Theme.Font.monoSmall)
                         .foregroundStyle(Theme.Colors.secondary)
 
                     Image(systemName: "chevron.right")
@@ -208,6 +214,7 @@ struct UninstallView: View {
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
+        .revealInFinderContextMenu(path: app.path)
     }
 
     // MARK: - App Detail
@@ -229,7 +236,7 @@ struct UninstallView: View {
                     Image(nsImage: icon)
                         .resizable()
                         .frame(width: 40, height: 40)
-                        .cornerRadius(8)
+                        .cornerRadius(Theme.Radius.md)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -260,8 +267,13 @@ struct UninstallView: View {
 
             if viewModel.isScanning {
                 Spacer()
-                ProgressView("Scanning for leftovers...")
-                    .font(Theme.Font.body)
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Scanning for leftovers...")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
                 Spacer()
             } else if viewModel.leftovers.isEmpty {
                 Spacer()
@@ -280,22 +292,16 @@ struct UninstallView: View {
                 leftoversList
             }
 
-            if viewModel.errorMessage != nil {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Theme.Colors.warning)
-                    Text(viewModel.errorMessage ?? "")
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.warning)
-                }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.vertical, Theme.Spacing.xs)
+            if let error = viewModel.errorMessage {
+                ErrorBanner(message: error, onDismiss: { viewModel.errorMessage = nil })
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.md)
             }
 
             // Uninstall action bar
             actionBar(
                 label: "Total: \(Formatters.fileSize(app.size + viewModel.totalLeftoverSize))",
-                buttonTitle: viewModel.isUninstalling ? "Removing..." : "Uninstall",
+                buttonTitle: "Uninstall",
                 isWorking: viewModel.isUninstalling,
                 action: { viewModel.showConfirmation = true }
             )
@@ -362,6 +368,7 @@ struct UninstallView: View {
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.leading, 20)
+                .revealInFinderContextMenu(path: item.path)
             }
         }
         .padding(.vertical, 4)

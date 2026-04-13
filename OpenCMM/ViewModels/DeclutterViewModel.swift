@@ -44,7 +44,13 @@ class DeclutterViewModel: ObservableObject {
     }
 
     var totalTempFilesSize: Int64 {
-        tempFiles.reduce(0) { $0 + $1.size }
+        tempFiles.filter(\.isSelected).reduce(0) { $0 + $1.size }
+    }
+
+    func toggleTempFile(_ id: UUID) {
+        if let idx = tempFiles.firstIndex(where: { $0.id == id }) {
+            tempFiles[idx].isSelected.toggle()
+        }
     }
 
     var sortedLargeFiles: [LargeFile] {
@@ -149,8 +155,8 @@ class DeclutterViewModel: ObservableObject {
 
     func removeTempFiles() async {
         await removeFiles(
-            tempFiles.map { (path: $0.path, name: $0.name) }
-        ) { tempFiles.removeAll() }
+            tempFiles.filter(\.isSelected).map { (path: $0.path, name: $0.name) }
+        ) { tempFiles.removeAll { $0.isSelected } }
     }
 
     private func removeFiles(_ files: [(path: String, name: String)], clear: () -> Void) async {

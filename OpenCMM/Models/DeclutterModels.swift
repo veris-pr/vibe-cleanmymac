@@ -22,4 +22,5 @@ struct TempFileResult: Identifiable {
     let path: String
     let name: String
     let size: Int64
+    var isSelected: Bool = true
 }

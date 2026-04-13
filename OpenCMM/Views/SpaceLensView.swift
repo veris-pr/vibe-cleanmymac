@@ -13,6 +13,12 @@ struct SpaceLensView: View {
 
             Divider()
 
+            if let error = viewModel.errorMessage {
+                ErrorBanner(message: error, onDismiss: { viewModel.errorMessage = nil })
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.md)
+            }
+
             if viewModel.isScanning && viewModel.currentNode == nil {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -168,10 +174,6 @@ struct SpaceLensRow: View {
             .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            Button("Reveal in Finder") {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: node.path)])
-            }
-        }
+        .revealInFinderContextMenu(path: node.path)
     }
 }

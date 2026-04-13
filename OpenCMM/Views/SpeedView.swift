@@ -67,7 +67,7 @@ struct SpeedView: View {
                     icon: "gauge.with.needle",
                     message: "Manage startup items",
                     detail: "View and manage login items and launch agents that run at startup.",
-                    buttonTitle: "Load",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.loadData() } }
                 )
                 Spacer()

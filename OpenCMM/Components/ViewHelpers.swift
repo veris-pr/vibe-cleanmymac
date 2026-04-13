@@ -128,6 +128,7 @@ struct EmptyStateView: View {
 struct SuccessStateView: View {
     let message: String
     let detail: String?
+    var buttonTitle: String = "Rescan"
     let action: () -> Void
 
     var body: some View {
@@ -149,7 +150,7 @@ struct SuccessStateView: View {
                     .foregroundStyle(Theme.Colors.muted)
             }
 
-            Button("Scan Again", action: action)
+            Button(buttonTitle, action: action)
                 .font(Theme.Font.bodyMedium)
                 .buttonStyle(.bordered)
                 .controlSize(.regular)

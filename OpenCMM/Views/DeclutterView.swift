@@ -266,7 +266,7 @@ struct DeclutterView: View {
 
                 actionBar(
                     label: "\(viewModel.similarImages.flatMap(\.files).filter { !$0.keepThis }.count) image(s) to remove",
-                    buttonTitle: "Remove Non-Kept",
+                    buttonTitle: "Remove",
                     isWorking: viewModel.isRemoving,
                     action: { viewModel.showConfirmation = true }
                 )
@@ -345,7 +345,7 @@ struct DeclutterView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalLargeFilesSize)) selected",
-                    buttonTitle: "Move to Trash",
+                    buttonTitle: "Remove",
                     isWorking: viewModel.isRemoving,
                     action: { viewModel.showConfirmation = true }
                 )
@@ -377,6 +377,13 @@ struct DeclutterView: View {
                 List {
                     ForEach(viewModel.tempFiles) { file in
                         HStack(spacing: Theme.Spacing.sm) {
+                            Toggle("", isOn: Binding(
+                                get: { file.isSelected },
+                                set: { _ in viewModel.toggleTempFile(file.id) }
+                            ))
+                            .toggleStyle(.checkbox)
+                            .labelsHidden()
+
                             Image(systemName: "doc.badge.clock")
                                 .font(.system(size: 12))
                                 .foregroundStyle(Theme.Colors.muted)
@@ -404,7 +411,7 @@ struct DeclutterView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalTempFilesSize)) in temp files",
-                    buttonTitle: "Remove Temp Files",
+                    buttonTitle: "Remove",
                     isWorking: viewModel.isRemoving,
                     action: { viewModel.showConfirmation = true }
                 )

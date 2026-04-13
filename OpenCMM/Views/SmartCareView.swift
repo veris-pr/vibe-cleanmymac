@@ -15,6 +15,12 @@ struct SmartCareView: View {
 
             Divider()
 
+            if let error = viewModel.errorMessage {
+                ErrorBanner(message: error, onDismiss: { viewModel.errorMessage = nil })
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.md)
+            }
+
             if viewModel.isScanning {
                 scanningView
             } else if scanStore.hasScanResults {
@@ -64,10 +70,10 @@ struct SmartCareView: View {
                     .frame(maxWidth: 280)
                     .tint(Theme.Colors.secondary)
 
-                Button("Cancel") { viewModel.cancelScan() }
+                Button("Stop") { viewModel.cancelScan() }
                     .font(Theme.Font.bodyMedium)
                     .buttonStyle(.bordered)
-                    .controlSize(.regular)
+                    .controlSize(.small)
             }
             Spacer()
         }
