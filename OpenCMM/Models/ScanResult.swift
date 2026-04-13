@@ -1,0 +1,22 @@
+import Foundation
+
+struct ScanResult: Identifiable {
+    let id = UUID()
+    let category: String
+    let items: [CleanableItem]
+    var isSelected: Bool = true
+
+    var totalSize: Int64 {
+        items.reduce(0) { $0 + $1.size }
+    }
+}
+
+struct ModuleScanSummary {
+    let module: Module
+    let itemCount: Int
+    let totalSize: Int64
+    let issues: [String]
+    let timestamp: Date
+
+    var hasIssues: Bool { itemCount > 0 }
+}
