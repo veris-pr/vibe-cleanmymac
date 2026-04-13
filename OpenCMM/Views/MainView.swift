@@ -30,6 +30,8 @@ struct MainView: View {
             DeclutterView(viewModel: appState.declutterVM)
         case .spaceLens:
             SpaceLensView(viewModel: appState.spaceLensVM)
+        case .settings:
+            SettingsView()
         }
     }
 }

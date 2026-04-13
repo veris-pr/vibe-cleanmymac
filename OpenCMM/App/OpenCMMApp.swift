@@ -7,9 +7,15 @@ struct OpenCMMApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainView()
-                .environmentObject(appState)
-                .frame(minWidth: 800, minHeight: 560)
+            Group {
+                if appState.hasCompletedSetup {
+                    MainView()
+                } else {
+                    SetupView()
+                }
+            }
+            .environmentObject(appState)
+            .frame(minWidth: 800, minHeight: 560)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified(showsTitle: true))

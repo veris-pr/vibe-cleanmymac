@@ -5,7 +5,7 @@ import Foundation
 actor DependencyManager {
     static let shared = DependencyManager()
 
-    struct ToolInfo {
+    struct ToolInfo: Identifiable {
         let id: String
         let name: String
         let description: String

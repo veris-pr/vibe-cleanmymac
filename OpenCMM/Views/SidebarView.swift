@@ -3,11 +3,24 @@ import SwiftUI
 struct SidebarView: View {
     @EnvironmentObject var appState: AppState
 
+    private var moduleItems: [Module] {
+        Module.allCases.filter { $0 != .settings }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            List(Module.allCases, selection: $appState.selectedModule) { module in
-                sidebarItem(for: module)
-                    .tag(module)
+            List(selection: $appState.selectedModule) {
+                Section {
+                    ForEach(moduleItems) { module in
+                        sidebarItem(for: module)
+                            .tag(module)
+                    }
+                }
+
+                Section {
+                    sidebarItem(for: .settings)
+                        .tag(Module.settings)
+                }
             }
             .listStyle(.sidebar)
 

@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 class AppState: ObservableObject {
     @Published var selectedModule: Module = .smartCare
+    @Published var hasCompletedSetup: Bool
 
     // Shared ViewModels — persist across navigation
     let smartCareVM = SmartCareViewModel()
@@ -12,6 +13,15 @@ class AppState: ObservableObject {
     let updateVM = UpdateViewModel()
     let declutterVM = DeclutterViewModel()
     let spaceLensVM = SpaceLensViewModel()
+
+    init() {
+        self.hasCompletedSetup = UserDefaults.standard.bool(forKey: "hasCompletedSetup")
+    }
+
+    func completeSetup() {
+        hasCompletedSetup = true
+        UserDefaults.standard.set(true, forKey: "hasCompletedSetup")
+    }
 }
 
 enum Module: String, CaseIterable, Identifiable {
@@ -22,6 +32,7 @@ enum Module: String, CaseIterable, Identifiable {
     case update = "Update"
     case declutter = "Declutter"
     case spaceLens = "Space Lens"
+    case settings = "Settings"
 
     var id: String { rawValue }
 
@@ -34,6 +45,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .update: return "arrow.down.circle"
         case .declutter: return "doc.on.doc"
         case .spaceLens: return "circle.grid.cross"
+        case .settings: return "gearshape"
         }
     }
 
@@ -50,6 +62,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .update: return "Keep your apps up to date"
         case .declutter: return "Take control of the clutter"
         case .spaceLens: return "See what's taking up space"
+        case .settings: return "Manage tools and preferences"
         }
     }
 }
