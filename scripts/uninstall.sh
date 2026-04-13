@@ -31,6 +31,7 @@ except: pass
         [mas]="mas"
         [czkawka]="czkawka"
         [gdu]="gdu"
+        [macmon]="macmon"
     )
 
     for tid in $TOOL_IDS; do

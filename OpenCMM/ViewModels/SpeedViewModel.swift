@@ -9,9 +9,19 @@ class SpeedViewModel: ObservableObject {
     @Published var osVersion: String = ""
     @Published var uptime: TimeInterval = 0
 
+    // macmon metrics
+    @Published var metrics: SystemMetrics?
+    @Published var isMacmonInstalled = false
+    @Published var isInstallingMacmon = false
+    @Published var installError: String?
+    @Published var isMonitoring = false
+
     var scanStore: ScanStore?
 
     private let service = PerformanceService()
+    private let macmonService = MacMonService()
+    private let dependencyManager = DependencyManager.shared
+    private var monitorTask: Task<Void, Never>?
 
     func loadData() async {
         isLoading = true
@@ -20,8 +30,44 @@ class SpeedViewModel: ObservableObject {
         hostname = Host.current().localizedName ?? "Mac"
         osVersion = ProcessInfo.processInfo.operatingSystemVersionString
         uptime = ProcessInfo.processInfo.systemUptime
+        isMacmonInstalled = await dependencyManager.isInstalled(.macmon)
         isLoading = false
         updateSummary()
+
+        if isMacmonInstalled {
+            startMonitoring()
+        }
+    }
+
+    func installMacmon() async {
+        isInstallingMacmon = true
+        installError = nil
+        do {
+            try await dependencyManager.install(.macmon)
+            isMacmonInstalled = true
+            startMonitoring()
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingMacmon = false
+    }
+
+    func startMonitoring() {
+        guard monitorTask == nil else { return }
+        isMonitoring = true
+        monitorTask = Task {
+            while !Task.isCancelled {
+                metrics = await macmonService.sample()
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s interval
+            }
+        }
+    }
+
+    func stopMonitoring() {
+        monitorTask?.cancel()
+        monitorTask = nil
+        isMonitoring = false
+        metrics = nil
     }
 
     func disableLoginItem(_ item: LoginItem) async {
