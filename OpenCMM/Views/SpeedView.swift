@@ -38,9 +38,9 @@ struct SpeedView: View {
                                 toolName: "mactop",
                                 description: "Apple Silicon performance monitor for GPU usage, temperature, and per-core metrics.",
                                 isInstalled: false,
-                                isInstalling: false,
-                                installError: nil,
-                                installAction: {}
+                                isInstalling: viewModel.isMactopInstalling,
+                                installError: viewModel.mactopInstallError,
+                                installAction: { Task { await viewModel.installMactop() } }
                             )
                             .padding(.horizontal, Theme.Spacing.lg)
                         }

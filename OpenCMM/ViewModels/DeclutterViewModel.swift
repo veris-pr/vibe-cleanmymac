@@ -13,6 +13,7 @@ class DeclutterViewModel: ObservableObject {
     @Published var isFclonesInstalled = false
     @Published var isCzkawkaInstalled = false
     @Published var isInstallingFclones = false
+    @Published var isInstallingCzkawka = false
     @Published var installError: String?
     @Published var errorMessage: String?
     @Published var showConfirmation = false
@@ -69,6 +70,18 @@ class DeclutterViewModel: ObservableObject {
             installError = error.localizedDescription
         }
         isInstallingFclones = false
+    }
+
+    func installCzkawka() async {
+        isInstallingCzkawka = true
+        installError = nil
+        do {
+            try await deps.install(.czkawka)
+            isCzkawkaInstalled = true
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingCzkawka = false
     }
 
     func scan() async {

@@ -66,9 +66,9 @@ struct DeclutterView: View {
                         toolName: "czkawka",
                         description: "Similar images, videos, and temp file detection. Enables the Similar Images and Temp Files tabs.",
                         isInstalled: viewModel.isCzkawkaInstalled,
-                        isInstalling: false,
-                        installError: nil,
-                        installAction: {}
+                        isInstalling: viewModel.isInstallingCzkawka,
+                        installError: viewModel.installError,
+                        installAction: { Task { await viewModel.installCzkawka() } }
                     )
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

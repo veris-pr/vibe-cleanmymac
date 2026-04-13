@@ -9,6 +9,8 @@ class SpeedViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var mactopMetrics: MactopService.Metrics?
     @Published var isMactopInstalled = false
+    @Published var isMactopInstalling = false
+    @Published var mactopInstallError: String?
     @Published var isAutoRefresh = false
 
     var scanStore: ScanStore?
@@ -25,6 +27,19 @@ class SpeedViewModel: ObservableObject {
 
     func checkDependencies() async {
         isMactopInstalled = await deps.isInstalled(.mactop)
+    }
+
+    func installMactop() async {
+        isMactopInstalling = true
+        mactopInstallError = nil
+        do {
+            try await deps.install(.mactop)
+            isMactopInstalled = true
+            mactopMetrics = await mactopService.snapshot()
+        } catch {
+            mactopInstallError = error.localizedDescription
+        }
+        isMactopInstalling = false
     }
 
     func loadData() async {

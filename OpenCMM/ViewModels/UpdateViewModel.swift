@@ -9,6 +9,9 @@ class UpdateViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isHomebrewInstalled = false
     @Published var isMasInstalled = false
+    @Published var isInstallingHomebrew = false
+    @Published var isInstallingMas = false
+    @Published var installError: String?
     @Published var showConfirmation = false
 
     var scanStore: ScanStore?
@@ -29,6 +32,30 @@ class UpdateViewModel: ObservableObject {
     func checkDependencies() async {
         isHomebrewInstalled = await deps.isHomebrewInstalled
         isMasInstalled = await deps.isInstalled(.mas)
+    }
+
+    func installHomebrew() async {
+        isInstallingHomebrew = true
+        installError = nil
+        do {
+            try await deps.installHomebrew()
+            isHomebrewInstalled = true
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingHomebrew = false
+    }
+
+    func installMas() async {
+        isInstallingMas = true
+        installError = nil
+        do {
+            try await deps.install(.mas)
+            isMasInstalled = true
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingMas = false
     }
 
     func checkForUpdates() async {
