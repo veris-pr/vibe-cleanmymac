@@ -26,6 +26,7 @@ enum AppConstants {
     enum ClamAV {
         static let maxFileSize = "50M"
         static let maxScanSize = "200M"
+        static let maxDirRecursion = 5
     }
 
     // MARK: - Timing

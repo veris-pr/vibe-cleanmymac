@@ -60,7 +60,7 @@ class SmartCareViewModel: ObservableObject {
             }
 
             group.addTask { [protectService] in
-                let threats = await protectService.scan()
+                let threats = await protectService.scan(quickScan: true)
                 let issues = threats.prefix(3).map { $0.name }
                 let summary = ModuleScanSummary(module: .protect, itemCount: threats.count, totalSize: 0, issues: Array(issues), timestamp: Date())
                 return (1, .protect(threats, summary))
