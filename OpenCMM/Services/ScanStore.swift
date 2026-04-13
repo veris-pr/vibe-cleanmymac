@@ -27,10 +27,6 @@ class ScanStore: ObservableObject {
             .compactMap { moduleSummaries[$0] }
     }
 
-    var totalIssues: Int {
-        moduleSummaries.values.reduce(0) { $0 + $1.itemCount }
-    }
-
     /// Update a single module's summary (called by individual module scans).
     func updateSummary(_ summary: ModuleScanSummary) {
         moduleSummaries[summary.module] = summary

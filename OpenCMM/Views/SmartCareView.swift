@@ -94,14 +94,14 @@ struct SmartCareView: View {
                     Text("Health Score")
                         .font(Theme.Font.heading)
                         .foregroundStyle(Theme.Colors.foreground)
-                    if scanStore.totalIssues > 0 {
-                        Text("\(scanStore.totalIssues) issue(s) found")
-                            .font(Theme.Font.body)
-                            .foregroundStyle(Theme.Colors.muted)
-                    } else {
+                    if scanStore.healthScore >= 80 {
                         Text("Your Mac is in great shape")
                             .font(Theme.Font.body)
                             .foregroundStyle(Theme.Colors.success)
+                    } else {
+                        Text("Check the modules below for details")
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.muted)
                     }
 
                     // Last scanned date
