@@ -70,7 +70,9 @@ class SetupViewModel: ObservableObject {
         homebrewInstallError = nil
 
         do {
-            try await deps.installHomebrew()
+            try await AdminAuthManager.shared.withAdmin(reason: "Installing Homebrew requires creating a system directory.") { password in
+                try await self.deps.installHomebrew(password: password)
+            }
             hasHomebrew = true
             await checkStatus()
         } catch {

@@ -156,17 +156,17 @@ actor DependencyManager {
     #endif
 
     /// Install Homebrew itself via tarball extraction.
-    /// Uses a single macOS admin password prompt to create the prefix directory,
-    /// then downloads and extracts as the current user (no Terminal needed).
-    func installHomebrew() async throws {
+    /// Password is collected by the caller's UI via AdminAuthManager.
+    func installHomebrew(password: String) async throws {
         guard !isHomebrewInstalled else { return }
 
         let prefix = Self.brewPrefix
         let user = NSUserName()
 
-        // Create prefix directory with admin privileges (triggers native macOS password dialog)
-        try ShellExecutor.shellWithAdmin(
-            "mkdir -p '\(prefix)' && chown -R \(user):admin '\(prefix)'"
+        // Create prefix directory with admin privileges
+        try ShellExecutor.shellWithSudo(
+            "mkdir -p '\(prefix)' && chown -R \(user):admin '\(prefix)'",
+            password: password
         )
 
         // Download and extract Homebrew (no admin needed — user owns directory)
@@ -176,8 +176,9 @@ actor DependencyManager {
 
         #if arch(x86_64)
         // Intel: create symlink so brew is on standard PATH
-        try ShellExecutor.shellWithAdmin(
-            "ln -sf '\(prefix)/bin/brew' '/usr/local/bin/brew'"
+        try ShellExecutor.shellWithSudo(
+            "ln -sf '\(prefix)/bin/brew' '/usr/local/bin/brew'",
+            password: password
         )
         #endif
 
@@ -187,7 +188,7 @@ actor DependencyManager {
 
     // MARK: - Installation via Homebrew
 
-    func install(_ tool: ToolInfo) async throws {
+    func install(_ tool: ToolInfo, password: String? = nil) async throws {
         guard isHomebrewInstalled else {
             throw DependencyError.homebrewRequired
         }
@@ -203,10 +204,13 @@ actor DependencyManager {
         // Installed directly (manual/pkg) — don't conflict, just use it
         if current.source == .direct { return }
 
-        // Cask installs (.pkg) may require admin privileges
+        // Cask installs (.pkg) require admin privileges
         if tool.isCask {
+            guard let pw = password else {
+                throw DependencyError.installFailed("Admin password required for cask installs")
+            }
             let brewPath = findExecutable("brew") ?? "brew"
-            try ShellExecutor.shellWithAdmin("\(brewPath) install --cask \(tool.brewPackage)")
+            try ShellExecutor.shellWithSudo("\(brewPath) install --cask \(tool.brewPackage)", password: pw)
         } else {
             try ShellExecutor.shell("brew install \(tool.brewPackage)")
         }

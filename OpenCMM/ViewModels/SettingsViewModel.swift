@@ -64,7 +64,9 @@ class SettingsViewModel: ObservableObject {
         homebrewInstallError = nil
 
         do {
-            try await deps.installHomebrew()
+            try await AdminAuthManager.shared.withAdmin(reason: "Installing Homebrew requires creating a system directory.") { password in
+                try await self.deps.installHomebrew(password: password)
+            }
             hasHomebrew = true
             await refresh()
         } catch {
@@ -81,13 +83,17 @@ class SettingsViewModel: ObservableObject {
 
         tools[idx].isInstalling = true
         tools[idx].error = nil
-        tools[idx].statusText = info.isCask
-            ? "Installing via Homebrew (admin password required)..."
-            : "Installing via Homebrew..."
+        tools[idx].statusText = "Installing via Homebrew..."
         errorMessage = nil
 
         do {
-            try await deps.install(info)
+            if info.isCask {
+                try await AdminAuthManager.shared.withAdmin(reason: "Installing \(info.name) requires admin privileges.") { password in
+                    try await self.deps.install(info, password: password)
+                }
+            } else {
+                try await deps.install(info)
+            }
             let status = await deps.status(for: info)
             tools[idx].isInstalled = true
             tools[idx].version = status.version

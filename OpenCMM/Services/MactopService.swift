@@ -33,11 +33,11 @@ actor MactopService {
         get async { await deps.isInstalled(.mactop) }
     }
 
-    func snapshot() async -> Metrics? {
+    func snapshot(password: String) async -> Metrics? {
         guard let mactop = await deps.path(for: .mactop) else { return nil }
 
         // mactop reads Apple Silicon performance counters which require root
-        guard let output = try? ShellExecutor.shellWithAdmin("\(mactop) --headless --count 1 2>/dev/null"),
+        guard let output = try? ShellExecutor.shellWithSudo("\(mactop) --headless --count 1 2>/dev/null", password: password),
               let data = output.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil

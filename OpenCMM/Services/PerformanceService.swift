@@ -66,8 +66,8 @@ actor PerformanceService {
         return items
     }
 
-    func purgeMemory() async throws {
-        try ShellExecutor.shellWithAdmin("purge")
+    func purgeMemory(password: String) async throws {
+        try ShellExecutor.shellWithSudo("purge", password: password)
     }
 
     func disableLoginItem(path: String) throws {

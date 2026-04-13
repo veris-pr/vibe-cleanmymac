@@ -49,9 +49,7 @@ class SpeedViewModel: ObservableObject {
         systemInfo = await info
         loginItems = await items
         await checkDependencies()
-        if isMactopInstalled {
-            mactopMetrics = await mactopService.snapshot()
-        }
+        await loadMactopMetrics()
         isLoading = false
         updateSpeedSummary()
     }
@@ -59,10 +57,20 @@ class SpeedViewModel: ObservableObject {
     func analyze() async {
         errorMessage = nil
         systemInfo = await service.getSystemInfo()
-        if isMactopInstalled {
-            mactopMetrics = await mactopService.snapshot()
-        }
+        await loadMactopMetrics()
         updateSpeedSummary()
+    }
+
+    /// Load mactop metrics — requires admin. Uses cached credentials or prompts once.
+    private func loadMactopMetrics() async {
+        guard isMactopInstalled else { return }
+        do {
+            try await AdminAuthManager.shared.withAdmin(reason: "Reading hardware performance counters requires admin privileges.") { password in
+                self.mactopMetrics = await self.mactopService.snapshot(password: password)
+            }
+        } catch {
+            // User cancelled or auth failed — just skip mactop data
+        }
     }
 
     func refresh() async {
@@ -89,7 +97,9 @@ class SpeedViewModel: ObservableObject {
         isPurging = true
         errorMessage = nil
         do {
-            try await service.purgeMemory()
+            try await AdminAuthManager.shared.withAdmin(reason: "Purging RAM requires admin privileges.") { password in
+                try await self.service.purgeMemory(password: password)
+            }
         } catch {
             errorMessage = "Failed to free RAM: \(error.localizedDescription)"
         }
