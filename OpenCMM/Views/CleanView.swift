@@ -118,9 +118,11 @@ struct CleanView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalSize)) to clean (\(viewModel.totalItems) items)",
-                    buttonTitle: "Clean Selected",
+                    buttonTitle: "Remove",
                     isWorking: viewModel.isCleaning,
-                    action: { viewModel.showConfirmation = true }
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
                 )
             } else if viewModel.lastCleanedSize > 0 {
                 Spacer()
@@ -147,11 +149,11 @@ struct CleanView: View {
             viewModel.loadFromStore()
         }
         .confirmationDialog(
-            "Clean Selected Items",
+            "Remove Selected Items",
             isPresented: $viewModel.showConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Clean \(Formatters.fileSize(viewModel.totalSize))", role: .destructive) {
+            Button("Remove \(Formatters.fileSize(viewModel.totalSize))", role: .destructive) {
                 Task { await viewModel.clean() }
             }
             Button("Cancel", role: .cancel) {}
