@@ -36,7 +36,8 @@ actor MactopService {
     func snapshot() async -> Metrics? {
         guard let mactop = await deps.path(for: .mactop) else { return nil }
 
-        guard let output = try? ShellExecutor.shell("\(mactop) --headless --count 1 2>/dev/null"),
+        // mactop reads Apple Silicon performance counters which require root
+        guard let output = try? ShellExecutor.shellWithAdmin("\(mactop) --headless --count 1 2>/dev/null"),
               let data = output.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil

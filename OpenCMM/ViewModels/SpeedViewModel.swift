@@ -35,7 +35,6 @@ class SpeedViewModel: ObservableObject {
         do {
             try await deps.install(.mactop)
             isMactopInstalled = true
-            mactopMetrics = await mactopService.snapshot()
         } catch {
             mactopInstallError = error.localizedDescription
         }

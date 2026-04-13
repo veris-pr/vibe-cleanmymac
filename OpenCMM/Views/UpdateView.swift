@@ -95,6 +95,7 @@ struct UpdateView: View {
                         isInstalled: viewModel.isHomebrewInstalled,
                         isInstalling: viewModel.isInstallingHomebrew,
                         installError: viewModel.installError,
+                        requiresAdmin: true,
                         installAction: { Task { await viewModel.installHomebrew() } }
                     )
 

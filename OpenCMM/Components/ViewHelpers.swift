@@ -166,6 +166,7 @@ struct DependencyBanner: View {
     let isInstalled: Bool
     let isInstalling: Bool
     let installError: String?
+    var requiresAdmin: Bool = false
     let installAction: () -> Void
 
     var body: some View {
@@ -186,6 +187,11 @@ struct DependencyBanner: View {
                     Text(description)
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.muted)
+                    if requiresAdmin {
+                        Text("Requires Homebrew · admin password will be requested")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.secondary)
+                    }
                     if let error = installError {
                         Text(error)
                             .font(Theme.Font.caption)
