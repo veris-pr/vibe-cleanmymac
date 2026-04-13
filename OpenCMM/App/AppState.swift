@@ -1,16 +1,17 @@
 import SwiftUI
 
+@MainActor
 class AppState: ObservableObject {
     @Published var selectedModule: Module = .smartCare
-    @Published var isScanning = false
-    @Published var lastScanDate: Date?
-    @Published var overallHealthScore: Int = 0
 
-    @Published var cleanResult: ModuleScanSummary?
-    @Published var protectResult: ModuleScanSummary?
-    @Published var speedResult: ModuleScanSummary?
-    @Published var updateResult: ModuleScanSummary?
-    @Published var declutterResult: ModuleScanSummary?
+    // Shared ViewModels — persist across navigation
+    let smartCareVM = SmartCareViewModel()
+    let cleanVM = CleanViewModel()
+    let protectVM = ProtectViewModel()
+    let speedVM = SpeedViewModel()
+    let updateVM = UpdateViewModel()
+    let declutterVM = DeclutterViewModel()
+    let spaceLensVM = SpaceLensViewModel()
 }
 
 enum Module: String, CaseIterable, Identifiable {
@@ -20,6 +21,7 @@ enum Module: String, CaseIterable, Identifiable {
     case speed = "Speed"
     case update = "Update"
     case declutter = "Declutter"
+    case spaceLens = "Space Lens"
 
     var id: String { rawValue }
 
@@ -31,6 +33,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .speed: return "gauge.with.needle"
         case .update: return "arrow.down.circle"
         case .declutter: return "doc.on.doc"
+        case .spaceLens: return "circle.grid.cross"
         }
     }
 
@@ -46,6 +49,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .speed: return "Make your slow Mac fast again"
         case .update: return "Keep your apps up to date"
         case .declutter: return "Take control of the clutter"
+        case .spaceLens: return "See what's taking up space"
         }
     }
 }

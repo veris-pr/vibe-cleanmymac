@@ -51,6 +51,7 @@ enum UpdateSource: String {
     case homebrew = "Homebrew"
     case homebrewCask = "Homebrew Cask"
     case manual = "Manual"
+    case appStore = "App Store"
 }
 
 struct DuplicateGroup: Identifiable {

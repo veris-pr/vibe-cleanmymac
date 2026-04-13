@@ -12,34 +12,51 @@
 
 OpenCMM is a free, open-source alternative to CleanMyMac. It's a native macOS app that helps you keep your Mac clean, safe, and fast — with a beautiful SwiftUI interface and a menu bar icon for quick access.
 
-**Five routines. One Smart Care.**
+**Six modules. One Smart Care. Powered by the best open-source tools.**
 
 <p align="center">
-  <em>Smart Care scans your Mac across all five modules in one click.</em>
+  <em>Smart Care scans your Mac across all modules in one click.</em>
 </p>
 
 ## Features
 
 ### 🧹 Clean — Free up space for things you truly need
-Clear out hidden system junk to make room for your apps, photos, and other important stuff. Scans system caches, user caches, browser data, logs, Xcode artifacts, and trash.
+Clear out hidden system junk to make room for your apps, photos, and other important stuff. Scans system caches, user caches, browser data, logs, Xcode artifacts, and trash. Per-item selection with confirmation dialogs.
 
 ### 🛡️ Protect — Neutralize threats before they do any harm
-Spot and remove malware that may hide within seemingly innocent software. Scans for known macOS malware, suspicious launch agents, and privacy risks like browser history and cookies.
+Deep malware scanning powered by **ClamAV** (millions of signatures). System auditing via **osquery** — launch items, listening ports, browser extensions, firewall and SIP status. Falls back to pattern-based detection when tools aren't installed.
 
 ### ⚡ Speed — Make your slow Mac fast again
-Control memory and CPU load to keep your Mac productive. View real-time system stats, manage login items and launch agents, and free up RAM.
+Real-time CPU, memory, and disk gauges with color-coded thresholds. Apple Silicon metrics via **mactop** (GPU, temperatures, power consumption, per-core stats). Auto-refresh mode, login item management.
 
 ### 🔄 Update — Keep your apps up to date
-Check for Homebrew formula and cask updates. Update individual apps or all at once to improve security and stability.
+Homebrew formula and cask updates plus **Mac App Store** updates via **mas**. Update individual apps or all at once.
 
 ### 📦 Declutter — Take control of the clutter
-Find duplicate files using hash comparison, discover large and forgotten files, and reclaim wasted storage space.
+Fast duplicate detection via **fclones**. Similar images, videos, and music via **czkawka**. Large file finder with sort options. Temp file cleanup. Interactive "keep" selection.
 
-### ✨ Smart Care — One scan. Five routines.
-Run all five modules in one click. Get a health score and a summary of everything that needs attention.
+### 🔍 Space Lens — See what's taking up space
+Visual disk usage map powered by **gdu**. Expandable directory tree showing size, percentage, and bar visualization. Drill into any folder to find space hogs.
+
+### ✨ Smart Care — One scan. Six modules.
+Run all modules in parallel with one click. Get a health score and tappable summary cards to jump into any module.
 
 ### 🖥️ Menu Bar
 Quick access from the menu bar — jump to any module or see your Mac's status at a glance.
+
+## Tool Integrations
+
+OpenCMM integrates the best open-source CLI tools for each job. All tools are **optional** — modules gracefully degrade without them, and offer one-click Homebrew installation from within the app.
+
+| Tool | Stars | Module | Purpose |
+|------|-------|--------|---------|
+| [ClamAV](https://github.com/Cisco-Talos/clamav) | 4K+ | Protect | Industry-standard antivirus engine |
+| [osquery](https://github.com/osquery/osquery) | 23K+ | Protect | SQL-powered system auditing |
+| [mactop](https://github.com/metaspartan/mactop) | 1K+ | Speed | Apple Silicon performance monitor |
+| [mas](https://github.com/mas-cli/mas) | 12K+ | Update | Mac App Store CLI |
+| [fclones](https://github.com/pkolaczk/fclones) | 2.7K+ | Declutter | High-performance duplicate finder |
+| [czkawka](https://github.com/qarmin/czkawka) | 30K+ | Declutter | Similar images/videos/music finder |
+| [gdu](https://github.com/dundee/gdu) | 5.5K+ | Space Lens | Fast disk usage analyzer |
 
 ## Installation
 
@@ -120,8 +137,15 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 Inspired by:
 - [CleanMyMac](https://cleanmymac.com) by MacPaw
 - [Mole](https://github.com/tw93/mole) by Tw93
-- [Czkawka](https://github.com/qarmin/czkawka) for duplicate detection
-- [Objective-See](https://objective-see.org) for macOS security tools
+
+Powered by:
+- [ClamAV](https://github.com/Cisco-Talos/clamav) — Antivirus engine
+- [osquery](https://github.com/osquery/osquery) — System auditing
+- [mactop](https://github.com/metaspartan/mactop) — Apple Silicon monitor
+- [mas](https://github.com/mas-cli/mas) — Mac App Store CLI
+- [fclones](https://github.com/pkolaczk/fclones) — Duplicate finder
+- [czkawka](https://github.com/qarmin/czkawka) — Similar file finder
+- [gdu](https://github.com/dundee/gdu) — Disk usage analyzer
 
 ## License
 

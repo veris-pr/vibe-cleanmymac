@@ -21,7 +21,7 @@ struct SidebarView: View {
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.muted)
                 Spacer()
-                Text("v0.1")
+                Text("v0.2")
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.muted.opacity(0.6))
             }

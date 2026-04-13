@@ -260,3 +260,36 @@ struct DependencyBanner: View {
         )
     }
 }
+
+// MARK: - Error Banner
+
+struct ErrorBanner: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.Colors.destructive)
+            Text(message)
+                .font(Theme.Font.body)
+                .foregroundStyle(Theme.Colors.foreground)
+                .lineLimit(2)
+            Spacer()
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.Colors.muted)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Theme.Spacing.md)
+        .background(Theme.Colors.destructive.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.md)
+                .stroke(Theme.Colors.destructive.opacity(0.2), lineWidth: 1)
+        )
+    }
+}

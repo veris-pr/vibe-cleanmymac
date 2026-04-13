@@ -6,36 +6,97 @@ class UpdateViewModel: ObservableObject {
     @Published var isChecking = false
     @Published var isUpdating = false
     @Published var checkComplete = false
+    @Published var errorMessage: String?
+    @Published var isHomebrewInstalled = false
+    @Published var isMasInstalled = false
+    @Published var showConfirmation = false
 
     private let service = UpdateService()
+    private let masService = MasService()
+    private let deps = DependencyManager.shared
 
     var updateCount: Int { updates.count }
     var selectedCount: Int { updates.filter(\.isSelected).count }
 
+    func checkDependencies() async {
+        isHomebrewInstalled = await deps.isHomebrewInstalled
+        isMasInstalled = await deps.isInstalled(.mas)
+    }
+
     func checkForUpdates() async {
         isChecking = true
         checkComplete = false
-        updates = await service.checkForUpdates()
+        errorMessage = nil
+        await checkDependencies()
+
+        var allUpdates: [AppUpdateInfo] = []
+
+        // Homebrew updates
+        let brewUpdates = await service.checkForUpdates()
+        allUpdates.append(contentsOf: brewUpdates)
+
+        // App Store updates via mas
+        if isMasInstalled {
+            let masOutdated = await masService.listOutdated()
+            let masUpdates = masOutdated.map { app in
+                AppUpdateInfo(
+                    name: app.name,
+                    currentVersion: app.currentVersion,
+                    availableVersion: app.availableVersion ?? "latest",
+                    source: .appStore
+                )
+            }
+            allUpdates.append(contentsOf: masUpdates)
+        }
+
+        updates = allUpdates
         isChecking = false
         checkComplete = true
     }
 
     func updateSelected() async {
         isUpdating = true
+        errorMessage = nil
         let selected = updates.filter(\.isSelected)
         for app in selected {
-            let success = await service.updateApp(app)
-            if success {
-                updates.removeAll { $0.id == app.id }
+            if app.source == .appStore {
+                // Use mas for App Store apps — find the ID by name match
+                let installed = await masService.listOutdated()
+                if let match = installed.first(where: { $0.name == app.name }) {
+                    do {
+                        try await masService.update(appId: match.id)
+                        updates.removeAll { $0.id == app.id }
+                    } catch {
+                        errorMessage = "Failed to update \(app.name): \(error.localizedDescription)"
+                    }
+                }
+            } else {
+                let success = await service.updateApp(app)
+                if success {
+                    updates.removeAll { $0.id == app.id }
+                }
             }
         }
         isUpdating = false
     }
 
     func updateSingle(_ app: AppUpdateInfo) async {
-        let success = await service.updateApp(app)
-        if success {
-            updates.removeAll { $0.id == app.id }
+        errorMessage = nil
+        if app.source == .appStore {
+            let installed = await masService.listOutdated()
+            if let match = installed.first(where: { $0.name == app.name }) {
+                do {
+                    try await masService.update(appId: match.id)
+                    updates.removeAll { $0.id == app.id }
+                } catch {
+                    errorMessage = "Failed to update \(app.name): \(error.localizedDescription)"
+                }
+            }
+        } else {
+            let success = await service.updateApp(app)
+            if success {
+                updates.removeAll { $0.id == app.id }
+            }
         }
     }
 

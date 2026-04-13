@@ -9,8 +9,13 @@ class ProtectViewModel: ObservableObject {
     @Published var isClamAVInstalled = false
     @Published var isInstallingClamAV = false
     @Published var installError: String?
+    @Published var errorMessage: String?
+    @Published var showConfirmation = false
+    @Published var auditResult: OsqueryService.AuditResult?
+    @Published var isOsqueryInstalled = false
 
     private let service = MalwareScanService()
+    private let osqueryService = OsqueryService()
     private let deps = DependencyManager.shared
 
     var threatCount: Int { threats.count }
@@ -32,14 +37,15 @@ class ProtectViewModel: ObservableObject {
     }
 
     func checkDependencies() async {
-        isClamAVInstalled = await deps.clamavStatus().isInstalled
+        isClamAVInstalled = await deps.isInstalled(.clamav)
+        isOsqueryInstalled = await deps.isInstalled(.osquery)
     }
 
     func installClamAV() async {
         isInstallingClamAV = true
         installError = nil
         do {
-            try await deps.installClamAV()
+            try await deps.install(.clamav)
             isClamAVInstalled = true
         } catch {
             installError = error.localizedDescription
@@ -50,16 +56,24 @@ class ProtectViewModel: ObservableObject {
     func scan() async {
         isScanning = true
         scanComplete = false
+        errorMessage = nil
         threats = await service.scan()
+        auditResult = await osqueryService.audit()
         isScanning = false
         scanComplete = true
     }
 
     func removeThreats() async {
         isRemoving = true
+        errorMessage = nil
         let selected = threats.filter(\.isSelected)
-        _ = await service.remove(threats: selected)
-        threats.removeAll { $0.isSelected }
+        do {
+            let removed = await service.remove(threats: selected)
+            if removed < selected.count {
+                errorMessage = "Some threats could not be removed."
+            }
+            threats.removeAll { $0.isSelected }
+        }
         isRemoving = false
     }
 

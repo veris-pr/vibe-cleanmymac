@@ -1,144 +1,122 @@
 import SwiftUI
 
 struct SmartCareView: View {
-    @StateObject private var viewModel = SmartCareViewModel()
+    @ObservedObject var viewModel: SmartCareViewModel
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Theme.Spacing.xl) {
-                if viewModel.isScanning {
-                    scanningSection
-                } else if viewModel.scanComplete {
-                    resultsSection
-                } else {
-                    welcomeSection
-                }
+        VStack(spacing: 0) {
+            moduleHeader(
+                icon: "square.grid.2x2",
+                title: "Smart Care",
+                subtitle: "One scan. Five routines."
+            )
+
+            Divider()
+
+            if viewModel.isScanning {
+                scanningView
+            } else if viewModel.scanComplete {
+                resultsView
+            } else {
+                welcomeView
             }
-            .padding(Theme.Spacing.xxl)
         }
         .background(Theme.Colors.background)
     }
 
     // MARK: - Welcome
 
-    private var welcomeSection: some View {
-        VStack(spacing: Theme.Spacing.xxl) {
-            Spacer().frame(height: 40)
-
-            VStack(spacing: Theme.Spacing.md) {
-                Image(systemName: "square.grid.2x2")
-                    .font(.system(size: 40, weight: .thin))
-                    .foregroundStyle(Theme.Colors.muted)
-
-                Text("Smart Care")
-                    .font(Theme.Font.largeTitle)
-                    .foregroundStyle(Theme.Colors.foreground)
-
-                Text("One scan. Five routines.")
-                    .font(Theme.Font.body)
-                    .foregroundStyle(Theme.Colors.muted)
-            }
-
-            Text("Scans your Mac for junk files, threats, performance issues, outdated apps, and clutter — all at once.")
-                .font(Theme.Font.body)
-                .foregroundStyle(Theme.Colors.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
-
-            ScanButton(title: "Start Smart Care", action: {
-                Task { await viewModel.runSmartCare() }
-            })
-
-            Spacer().frame(height: 40)
+    private var welcomeView: some View {
+        VStack {
+            Spacer()
+            EmptyStateView(
+                icon: "square.grid.2x2",
+                message: "Smart Care",
+                detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
+                buttonTitle: "Start Smart Care",
+                buttonIcon: "play.fill",
+                action: { viewModel.startScan() }
+            )
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Scanning
 
-    private var scanningSection: some View {
-        VStack(spacing: Theme.Spacing.xl) {
-            Spacer().frame(height: 60)
+    private var scanningView: some View {
+        VStack {
+            Spacer()
+            VStack(spacing: Theme.Spacing.xl) {
+                ProgressRing(progress: viewModel.progress, size: 100, lineWidth: 8, invertedThresholds: true)
 
-            ProgressRing(progress: viewModel.progress, size: 100, lineWidth: 5)
+                VStack(spacing: Theme.Spacing.xs) {
+                    Text(viewModel.currentStep)
+                        .font(Theme.Font.heading)
+                        .foregroundStyle(Theme.Colors.foreground)
+                    Text("Scanning \(Int(viewModel.progress * 5)) of 5 modules")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
 
-            VStack(spacing: Theme.Spacing.xs) {
-                Text(viewModel.currentStep)
-                    .font(Theme.Font.heading)
-                    .foregroundStyle(Theme.Colors.foreground)
+                ProgressView(value: viewModel.progress)
+                    .progressViewStyle(.linear)
+                    .frame(maxWidth: 280)
+                    .tint(Theme.Colors.secondary)
 
-                Text("This may take a moment")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted)
+                Button("Cancel") { viewModel.cancelScan() }
+                    .font(Theme.Font.bodyMedium)
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
             }
-
-            ProgressView(value: viewModel.progress)
-                .tint(Color.primary.opacity(0.5))
-                .frame(maxWidth: 320)
-
-            Spacer().frame(height: 60)
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Results
 
-    private var resultsSection: some View {
-        VStack(spacing: Theme.Spacing.xl) {
-            // Health score
-            VStack(spacing: Theme.Spacing.sm) {
-                healthRing
-
-                Text(healthLabel)
-                    .font(Theme.Font.body)
-                    .foregroundStyle(Theme.Colors.secondary)
-            }
-
-            // Module summary cards
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Theme.Spacing.md)], spacing: Theme.Spacing.md) {
-                if let clean = viewModel.cleanSummary { ModuleCard(summary: clean) }
-                if let protect = viewModel.protectSummary { ModuleCard(summary: protect) }
-                if let speed = viewModel.speedSummary { ModuleCard(summary: speed) }
-                if let update = viewModel.updateSummary { ModuleCard(summary: update) }
-                if let declutter = viewModel.declutterSummary { ModuleCard(summary: declutter) }
-            }
-
-            Button(action: { Task { await viewModel.runSmartCare() } }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .medium))
-                    Text("Scan Again")
-                        .font(Theme.Font.bodyMedium)
+    private var resultsView: some View {
+        ScrollView {
+            VStack(spacing: Theme.Spacing.xl) {
+                // Health score
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressRing(
+                        progress: Double(viewModel.healthScore) / 100.0,
+                        size: 88, lineWidth: 7,
+                        thresholds: true, invertedThresholds: true
+                    )
+                    Text("Health Score")
+                        .font(Theme.Font.heading)
+                        .foregroundStyle(Theme.Colors.foreground)
+                    if viewModel.totalIssues > 0 {
+                        Text("\(viewModel.totalIssues) issue(s) found")
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.muted)
+                    } else {
+                        Text("Your Mac is in great shape")
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.success)
+                    }
                 }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-        }
-    }
+                .padding(.top, Theme.Spacing.lg)
 
-    private var healthRing: some View {
-        ZStack {
-            Circle()
-                .stroke(Theme.Colors.border, lineWidth: 5)
-                .frame(width: 88, height: 88)
-            Circle()
-                .trim(from: 0, to: Double(viewModel.healthScore) / 100.0)
-                .stroke(Color.primary.opacity(0.7), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .frame(width: 88, height: 88)
-            VStack(spacing: 0) {
-                Text("\(viewModel.healthScore)")
-                    .font(Theme.Font.stat)
-                    .foregroundStyle(Theme.Colors.foreground)
-                Text("health")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted)
+                // Module cards grid
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Theme.Spacing.md)], spacing: Theme.Spacing.md) {
+                    ForEach(viewModel.summaries) { summary in
+                        ModuleCard(summary: summary) {
+                            appState.selectedModule = summary.module
+                        }
+                    }
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+
+                // Scan again
+                Button("Scan Again") { viewModel.startScan() }
+                    .font(Theme.Font.bodyMedium)
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .padding(.bottom, Theme.Spacing.xl)
             }
         }
-    }
-
-    private var healthLabel: String {
-        if viewModel.totalIssues == 0 { return "Your Mac is in great shape." }
-        return "\(viewModel.totalIssues) items need attention"
     }
 }

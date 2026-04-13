@@ -27,6 +27,8 @@ enum Theme {
         static let background = Color(nsColor: .windowBackgroundColor)
         static let destructive = Color(red: 0.9, green: 0.26, blue: 0.2)
         static let success = Color(red: 0.18, green: 0.72, blue: 0.35)
+        static let warning = Color(red: 0.95, green: 0.68, blue: 0.0)  // Amber
+        static let info = Color(red: 0.45, green: 0.55, blue: 0.65)     // Blue-grey
         static let accent = Color.primary.opacity(0.85)
     }
 
@@ -38,6 +40,14 @@ enum Theme {
         static let lg: CGFloat = 16
         static let xl: CGFloat = 24
         static let xxl: CGFloat = 32
+        static let xxxl: CGFloat = 48
+    }
+
+    // Animation
+    enum Animation {
+        static let standard = SwiftUI.Animation.easeInOut(duration: 0.25)
+        static let slow = SwiftUI.Animation.easeInOut(duration: 0.5)
+        static let spring = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.8)
     }
 
     // Radii

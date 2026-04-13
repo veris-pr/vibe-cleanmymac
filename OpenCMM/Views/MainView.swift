@@ -17,17 +17,19 @@ struct MainView: View {
     private var contentView: some View {
         switch appState.selectedModule {
         case .smartCare:
-            SmartCareView()
+            SmartCareView(viewModel: appState.smartCareVM)
         case .clean:
-            CleanView()
+            CleanView(viewModel: appState.cleanVM)
         case .protect:
-            ProtectView()
+            ProtectView(viewModel: appState.protectVM)
         case .speed:
-            SpeedView()
+            SpeedView(viewModel: appState.speedVM)
         case .update:
-            UpdateView()
+            UpdateView(viewModel: appState.updateVM)
         case .declutter:
-            DeclutterView()
+            DeclutterView(viewModel: appState.declutterVM)
+        case .spaceLens:
+            SpaceLensView(viewModel: appState.spaceLensVM)
         }
     }
 }

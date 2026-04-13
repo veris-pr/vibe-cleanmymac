@@ -4,109 +4,102 @@ import SwiftUI
 class SmartCareViewModel: ObservableObject {
     @Published var isScanning = false
     @Published var scanComplete = false
-    @Published var currentStep: String = ""
     @Published var progress: Double = 0
+    @Published var currentStep: String = ""
     @Published var healthScore: Int = 0
+    @Published var summaries: [ModuleScanSummary] = []
+    @Published var errorMessage: String?
 
-    @Published var cleanSummary: ModuleScanSummary?
-    @Published var protectSummary: ModuleScanSummary?
-    @Published var speedSummary: ModuleScanSummary?
-    @Published var updateSummary: ModuleScanSummary?
-    @Published var declutterSummary: ModuleScanSummary?
+    private var scanTask: Task<Void, Never>?
 
-    private let cleaningService = CleaningService()
-    private let malwareService = MalwareScanService()
+    private let cleanService = CleaningService()
+    private let protectService = MalwareScanService()
     private let performanceService = PerformanceService()
     private let updateService = UpdateService()
     private let duplicateService = DuplicateFinderService()
     private let systemInfoService = SystemInfoService()
 
-    var totalIssues: Int {
-        [cleanSummary, protectSummary, speedSummary, updateSummary, declutterSummary]
-            .compactMap { $0?.itemCount }
-            .reduce(0, +)
+    var totalIssues: Int { summaries.reduce(0) { $0 + $1.itemCount } }
+
+    func startScan() {
+        scanTask?.cancel()
+        scanTask = Task { await scan() }
     }
 
-    func runSmartCare() async {
+    func cancelScan() {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+        currentStep = ""
+    }
+
+    private func scan() async {
         isScanning = true
         scanComplete = false
+        summaries = []
         progress = 0
+        currentStep = "Starting scan..."
 
-        // Step 1: Clean scan
-        currentStep = "Scanning for junk files..."
-        let cleanResults = await cleaningService.scan()
-        let cleanSize = cleanResults.reduce(0) { $0 + $1.totalSize }
-        cleanSummary = ModuleScanSummary(
-            module: .clean,
-            itemCount: cleanResults.flatMap(\.items).count,
-            totalSize: cleanSize,
-            issues: cleanResults.map { "\($0.category): \(Formatters.fileSize($0.totalSize))" },
-            timestamp: Date()
-        )
-        progress = 0.2
+        // Run all 5 scans concurrently using structured concurrency
+        await withTaskGroup(of: (Int, ModuleScanSummary).self) { group in
+            group.addTask { [cleanService] in
+                let results = await cleanService.scan()
+                let totalSize = results.reduce(0) { $0 + $1.totalSize }
+                let itemCount = results.reduce(0) { $0 + $1.items.count }
+                let issues = results.map { "\($0.category): \(Formatters.fileSize($0.totalSize))" }
+                return (0, ModuleScanSummary(module: .clean, itemCount: itemCount, totalSize: totalSize, issues: issues, timestamp: Date()))
+            }
 
-        // Step 2: Protect scan
-        currentStep = "Checking for threats..."
-        let threats = await malwareService.scan()
-        protectSummary = ModuleScanSummary(
-            module: .protect,
-            itemCount: threats.count,
-            totalSize: 0,
-            issues: threats.map { "\($0.threatType.rawValue): \($0.name)" },
-            timestamp: Date()
-        )
-        progress = 0.4
+            group.addTask { [protectService] in
+                let threats = await protectService.scan()
+                let issues = threats.prefix(3).map { $0.name }
+                return (1, ModuleScanSummary(module: .protect, itemCount: threats.count, totalSize: 0, issues: Array(issues), timestamp: Date()))
+            }
 
-        // Step 3: Speed check
-        currentStep = "Analyzing performance..."
-        let sysInfo = await performanceService.getSystemInfo()
-        let loginItems = await performanceService.getLoginItems()
-        var speedIssues: [String] = []
-        if sysInfo.memoryUsedPercent > 75 { speedIssues.append("High memory usage: \(Formatters.percentage(sysInfo.memoryUsedPercent))") }
-        if loginItems.count > 10 { speedIssues.append("\(loginItems.count) startup items") }
-        speedSummary = ModuleScanSummary(
-            module: .speed,
-            itemCount: speedIssues.count,
-            totalSize: 0,
-            issues: speedIssues,
-            timestamp: Date()
-        )
-        progress = 0.6
+            group.addTask { [performanceService] in
+                let info = await performanceService.getSystemInfo()
+                var issues: [String] = []
+                if info.memoryUsedPercent > 80 { issues.append("High memory usage: \(Int(info.memoryUsedPercent))%") }
+                if info.diskUsedPercent > 80 { issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free") }
+                if info.cpuUsage > 70 { issues.append("High CPU: \(Int(info.cpuUsage))%") }
+                return (2, ModuleScanSummary(module: .speed, itemCount: issues.count, totalSize: 0, issues: issues, timestamp: Date()))
+            }
 
-        // Step 4: Update check
-        currentStep = "Checking for updates..."
-        let updates = await updateService.checkForUpdates()
-        updateSummary = ModuleScanSummary(
-            module: .update,
-            itemCount: updates.count,
-            totalSize: 0,
-            issues: updates.map { "\($0.name): \($0.currentVersion) → \($0.availableVersion)" },
-            timestamp: Date()
-        )
-        progress = 0.8
+            group.addTask { [updateService] in
+                let updates = await updateService.checkForUpdates()
+                let issues = updates.prefix(3).map { "\($0.name) → \($0.availableVersion)" }
+                return (3, ModuleScanSummary(module: .update, itemCount: updates.count, totalSize: 0, issues: Array(issues), timestamp: Date()))
+            }
 
-        // Step 5: Declutter scan
-        currentStep = "Finding duplicates and clutter..."
-        let dupes = await duplicateService.findDuplicates()
-        let largeFiles = await duplicateService.findLargeFiles()
-        let wastedSpace = dupes.reduce(0) { $0 + $1.wastedSpace }
-        declutterSummary = ModuleScanSummary(
-            module: .declutter,
-            itemCount: dupes.count + largeFiles.count,
-            totalSize: wastedSpace,
-            issues: [
-                "\(dupes.count) duplicate groups",
-                "\(largeFiles.count) large files found",
-            ],
-            timestamp: Date()
-        )
-        progress = 1.0
+            group.addTask { [duplicateService] in
+                let groups = await duplicateService.findDuplicates()
+                let wastedSpace = groups.reduce(0) { $0 + $1.wastedSpace }
+                let issues = groups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
+                return (4, ModuleScanSummary(module: .declutter, itemCount: groups.count, totalSize: wastedSpace, issues: Array(issues), timestamp: Date()))
+            }
 
-        // Calculate health score
+            var completed = 0
+            var results: [(Int, ModuleScanSummary)] = []
+
+            for await result in group {
+                guard !Task.isCancelled else { return }
+                completed += 1
+                results.append(result)
+
+                let stepNames = ["Clean", "Protect", "Speed", "Update", "Declutter"]
+                currentStep = "Completed \(stepNames[result.0])"
+                progress = Double(completed) / 5.0
+            }
+
+            // Sort by module order
+            summaries = results.sorted { $0.0 < $1.0 }.map { $0.1 }
+        }
+
+        guard !Task.isCancelled else { return }
+
         healthScore = await systemInfoService.healthScore()
-
-        currentStep = "Scan complete"
         isScanning = false
         scanComplete = true
+        currentStep = ""
     }
 }

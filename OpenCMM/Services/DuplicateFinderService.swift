@@ -6,7 +6,7 @@ actor DuplicateFinderService {
     private let deps = DependencyManager.shared
 
     var isFclonesAvailable: Bool {
-        get async { await deps.fclonesStatus().isInstalled }
+        get async { await deps.isInstalled(.fclones) }
     }
 
     func findDuplicates(in paths: [String]? = nil) async -> [DuplicateGroup] {
@@ -17,7 +17,7 @@ actor DuplicateFinderService {
         ]
 
         // Use fclones if available (much faster and more accurate)
-        if let fclones = await deps.fclonesStatus().path {
+        if let fclones = await deps.path(for: .fclones) {
             return await findDuplicatesWithFclones(fclones, paths: searchPaths)
         }
 

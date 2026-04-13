@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CleanView: View {
-    @StateObject private var viewModel = CleanViewModel()
+    @ObservedObject var viewModel: CleanViewModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +12,12 @@ struct CleanView: View {
             )
 
             Divider()
+
+            if let error = viewModel.errorMessage {
+                ErrorBanner(message: error, onDismiss: { viewModel.errorMessage = nil })
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.md)
+            }
 
             if viewModel.isScanning {
                 Spacer()
@@ -27,33 +33,96 @@ struct CleanView: View {
                 List {
                     ForEach(Array(viewModel.scanResults.enumerated()), id: \.element.id) { index, result in
                         Section {
-                            ForEach(result.items) { item in
-                                FileRow(
-                                    icon: item.category.icon,
-                                    name: item.name,
-                                    path: item.path,
-                                    trailing: Formatters.fileSize(item.size)
-                                )
+                            // Disclosure triangle header
+                            Button {
+                                withAnimation(Theme.Animation.standard) {
+                                    viewModel.toggleSection(result.id)
+                                }
+                            } label: {
+                                HStack(spacing: Theme.Spacing.sm) {
+                                    Image(systemName: viewModel.expandedSections.contains(result.id) ? "chevron.down" : "chevron.right")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundStyle(Theme.Colors.muted)
+                                        .frame(width: 12)
+
+                                    Toggle("", isOn: Binding(
+                                        get: { result.isSelected },
+                                        set: { _ in viewModel.toggleCategory(index) }
+                                    ))
+                                    .toggleStyle(.checkbox)
+                                    .labelsHidden()
+
+                                    Text(result.category)
+                                        .font(Theme.Font.heading)
+                                        .foregroundStyle(Theme.Colors.foreground)
+
+                                    Spacer()
+
+                                    Text("\(result.items.count) items")
+                                        .font(Theme.Font.caption)
+                                        .foregroundStyle(Theme.Colors.muted)
+
+                                    Text(Formatters.fileSize(result.totalSize))
+                                        .font(Theme.Font.monoSmall)
+                                        .foregroundStyle(Theme.Colors.muted)
+                                }
                             }
-                        } header: {
-                            SectionHeaderRow(
-                                title: result.category,
-                                trailing: Formatters.fileSize(result.totalSize),
-                                isOn: Binding(
-                                    get: { result.isSelected },
-                                    set: { _ in viewModel.toggleCategory(index) }
-                                )
-                            )
+                            .buttonStyle(.plain)
+
+                            // Expanded items
+                            if viewModel.expandedSections.contains(result.id) {
+                                ForEach(result.items) { item in
+                                    HStack(spacing: Theme.Spacing.sm) {
+                                        Toggle("", isOn: Binding(
+                                            get: { item.isSelected },
+                                            set: { _ in viewModel.toggleItem(item.id) }
+                                        ))
+                                        .toggleStyle(.checkbox)
+                                        .labelsHidden()
+
+                                        Image(systemName: item.category.icon)
+                                            .font(.system(size: 12, weight: .regular))
+                                            .foregroundStyle(Theme.Colors.muted)
+                                            .frame(width: 20)
+
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text(item.name)
+                                                .font(Theme.Font.body)
+                                                .foregroundStyle(Theme.Colors.foreground)
+                                            Text(item.path)
+                                                .font(Theme.Font.caption)
+                                                .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                        }
+
+                                        Spacer()
+
+                                        Text(Formatters.fileSize(item.size))
+                                            .font(Theme.Font.monoSmall)
+                                            .foregroundStyle(Theme.Colors.secondary)
+                                    }
+                                    .padding(.vertical, 2)
+                                    .padding(.leading, Theme.Spacing.lg)
+                                    .contextMenu {
+                                        Button {
+                                            NSWorkspace.shared.selectFile(item.path, inFileViewerRootedAtPath: "")
+                                        } label: {
+                                            Label("Reveal in Finder", systemImage: "folder")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
                 .listStyle(.inset)
 
                 actionBar(
-                    label: "\(Formatters.fileSize(viewModel.totalSize)) to clean",
+                    label: "\(Formatters.fileSize(viewModel.totalSize)) to clean (\(viewModel.totalItems) items)",
                     buttonTitle: "Clean",
                     isWorking: viewModel.isCleaning,
-                    action: { Task { await viewModel.clean() } }
+                    action: { viewModel.showConfirmation = true }
                 )
             } else if viewModel.lastCleanedSize > 0 {
                 Spacer()
@@ -76,5 +145,17 @@ struct CleanView: View {
             }
         }
         .background(Theme.Colors.background)
+        .confirmationDialog(
+            "Clean Selected Items",
+            isPresented: $viewModel.showConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clean \(Formatters.fileSize(viewModel.totalSize))", role: .destructive) {
+                Task { await viewModel.clean() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(viewModel.totalItems) item(s) will be permanently removed. This action cannot be undone.")
+        }
     }
 }

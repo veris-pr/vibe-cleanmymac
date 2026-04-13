@@ -24,6 +24,9 @@ actor UpdateService {
                 try ShellExecutor.shell("brew upgrade \(app.name)")
             case .homebrewCask:
                 try ShellExecutor.shell("brew upgrade --cask \(app.name)")
+            case .appStore:
+                // App Store updates handled by MasService
+                return false
             case .manual:
                 return false
             }

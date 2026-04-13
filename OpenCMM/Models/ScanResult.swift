@@ -3,7 +3,7 @@ import Foundation
 struct ScanResult: Identifiable {
     let id = UUID()
     let category: String
-    let items: [CleanableItem]
+    var items: [CleanableItem]
     var isSelected: Bool = true
 
     var totalSize: Int64 {
@@ -11,7 +11,8 @@ struct ScanResult: Identifiable {
     }
 }
 
-struct ModuleScanSummary {
+struct ModuleScanSummary: Identifiable {
+    let id = UUID()
     let module: Module
     let itemCount: Int
     let totalSize: Int64

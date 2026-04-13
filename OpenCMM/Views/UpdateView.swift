@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct UpdateView: View {
-    @StateObject private var viewModel = UpdateViewModel()
+    @ObservedObject var viewModel: UpdateViewModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +12,12 @@ struct UpdateView: View {
             )
 
             Divider()
+
+            if let error = viewModel.errorMessage {
+                ErrorBanner(message: error, onDismiss: { viewModel.errorMessage = nil })
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.md)
+            }
 
             if viewModel.isChecking {
                 Spacer()
@@ -43,7 +49,7 @@ struct UpdateView: View {
                                 .toggleStyle(.checkbox)
                                 .labelsHidden()
 
-                                Image(systemName: "shippingbox")
+                                Image(systemName: app.source == .appStore ? "app.badge" : "shippingbox")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Theme.Colors.muted)
                                     .frame(width: 24)
@@ -77,15 +83,38 @@ struct UpdateView: View {
                         label: "\(viewModel.selectedCount) of \(viewModel.updateCount) selected",
                         buttonTitle: "Update All",
                         isWorking: viewModel.isUpdating,
-                        action: { Task { await viewModel.updateSelected() } }
+                        action: { viewModel.showConfirmation = true }
                     )
                 }
             } else {
+                // Dependency banners
+                VStack(spacing: Theme.Spacing.sm) {
+                    DependencyBanner(
+                        toolName: "Homebrew",
+                        description: "Package manager required for updating Homebrew apps and installing tools.",
+                        isInstalled: viewModel.isHomebrewInstalled,
+                        isInstalling: false,
+                        installError: nil,
+                        installAction: {}
+                    )
+
+                    DependencyBanner(
+                        toolName: "mas",
+                        description: "Mac App Store CLI for checking and updating App Store apps.",
+                        isInstalled: viewModel.isMasInstalled,
+                        isInstalling: false,
+                        installError: nil,
+                        installAction: {}
+                    )
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+
                 Spacer()
                 EmptyStateView(
                     icon: "arrow.down.circle",
                     message: "Check for updates",
-                    detail: "Update all your Homebrew apps to improve security and stability.",
+                    detail: "Update all your Homebrew and App Store apps to improve security and stability.",
                     buttonTitle: "Check for Updates",
                     action: { Task { await viewModel.checkForUpdates() } }
                 )
@@ -93,5 +122,18 @@ struct UpdateView: View {
             }
         }
         .background(Theme.Colors.background)
+        .task { await viewModel.checkDependencies() }
+        .confirmationDialog(
+            "Update Selected Apps",
+            isPresented: $viewModel.showConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Update \(viewModel.selectedCount) app(s)") {
+                Task { await viewModel.updateSelected() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The selected apps will be updated to their latest versions.")
+        }
     }
 }
