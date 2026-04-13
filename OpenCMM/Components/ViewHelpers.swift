@@ -64,7 +64,6 @@ struct EmptyStateView: View {
     let message: String
     let detail: String
     let buttonTitle: String?
-    var buttonIcon: String = "arrow.right"
     let action: () -> Void
 
     var body: some View {
@@ -86,7 +85,7 @@ struct EmptyStateView: View {
             }
 
             if let buttonTitle {
-                ScanButton(title: buttonTitle, icon: buttonIcon, action: action)
+                ScanButton(title: buttonTitle, action: action)
                     .padding(.top, Theme.Spacing.sm)
             }
         }

@@ -36,7 +36,6 @@ struct SmartCareView: View {
                 message: "System Scan",
                 detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
                 buttonTitle: "Start Scan",
-                buttonIcon: "play.fill",
                 action: { viewModel.startScan() }
             )
             Spacer()

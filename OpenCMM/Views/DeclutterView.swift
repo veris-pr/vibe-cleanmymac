@@ -80,7 +80,6 @@ struct DeclutterView: View {
                     message: "Find clutter",
                     detail: "Deep scan for duplicates, large forgotten files, and wasted storage. Uses full file hashing for accurate results.",
                     buttonTitle: "Deep Scan",
-                    buttonIcon: "magnifyingglass",
                     action: { Task { await viewModel.scan() } }
                 )
                 Spacer()
