@@ -14,6 +14,8 @@ class ProtectViewModel: ObservableObject {
     @Published var auditResult: OsqueryService.AuditResult?
     @Published var isOsqueryInstalled = false
 
+    var scanStore: ScanStore?
+
     private let service = MalwareScanService()
     private let osqueryService = OsqueryService()
     private let deps = DependencyManager.shared
@@ -61,6 +63,13 @@ class ProtectViewModel: ObservableObject {
         auditResult = await osqueryService.audit()
         isScanning = false
         scanComplete = true
+
+        // Update dashboard
+        let issues = threats.prefix(3).map { $0.name }
+        scanStore?.updateSummary(ModuleScanSummary(
+            module: .protect, itemCount: threats.count, totalSize: 0,
+            issues: Array(issues), timestamp: Date()
+        ))
     }
 
     func removeThreats() async {
@@ -75,6 +84,7 @@ class ProtectViewModel: ObservableObject {
             threats.removeAll { $0.isSelected }
         }
         isRemoving = false
+        scanStore?.invalidate(.protect)
     }
 
     func toggleThreat(_ id: UUID) {

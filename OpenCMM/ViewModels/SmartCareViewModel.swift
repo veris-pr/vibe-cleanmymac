@@ -3,12 +3,11 @@ import SwiftUI
 @MainActor
 class SmartCareViewModel: ObservableObject {
     @Published var isScanning = false
-    @Published var scanComplete = false
     @Published var progress: Double = 0
     @Published var currentStep: String = ""
-    @Published var healthScore: Int = 0
-    @Published var summaries: [ModuleScanSummary] = []
     @Published var errorMessage: String?
+
+    var scanStore: ScanStore?
 
     private var scanTask: Task<Void, Never>?
 
@@ -18,8 +17,6 @@ class SmartCareViewModel: ObservableObject {
     private let updateService = UpdateService()
     private let duplicateService = DuplicateFinderService()
     private let systemInfoService = SystemInfoService()
-
-    var totalIssues: Int { summaries.reduce(0) { $0 + $1.itemCount } }
 
     func startScan() {
         scanTask?.cancel()
@@ -35,12 +32,12 @@ class SmartCareViewModel: ObservableObject {
 
     private func scan() async {
         isScanning = true
-        scanComplete = false
-        summaries = []
         progress = 0
         currentStep = "Starting scan..."
 
         // Run all 5 scans concurrently using structured concurrency
+        var collectedSummaries: [ModuleScanSummary] = []
+
         await withTaskGroup(of: (Int, ModuleScanSummary).self) { group in
             group.addTask { [cleanService] in
                 let results = await cleanService.scan()
@@ -92,14 +89,17 @@ class SmartCareViewModel: ObservableObject {
             }
 
             // Sort by module order
-            summaries = results.sorted { $0.0 < $1.0 }.map { $0.1 }
+            collectedSummaries = results.sorted { $0.0 < $1.0 }.map { $0.1 }
         }
 
         guard !Task.isCancelled else { return }
 
-        healthScore = await systemInfoService.healthScore()
+        let score = await systemInfoService.healthScore()
+
+        // Persist to shared ScanStore
+        scanStore?.updateAll(collectedSummaries, healthScore: score)
+
         isScanning = false
-        scanComplete = true
         currentStep = ""
     }
 }

@@ -11,6 +11,8 @@ class SpeedViewModel: ObservableObject {
     @Published var isMactopInstalled = false
     @Published var isAutoRefresh = false
 
+    var scanStore: ScanStore?
+
     private let service = PerformanceService()
     private let mactopService = MactopService()
     private let deps = DependencyManager.shared
@@ -32,6 +34,7 @@ class SpeedViewModel: ObservableObject {
             mactopMetrics = await mactopService.snapshot()
         }
         isLoading = false
+        updateSpeedSummary()
     }
 
     func analyze() async {
@@ -40,6 +43,7 @@ class SpeedViewModel: ObservableObject {
         if isMactopInstalled {
             mactopMetrics = await mactopService.snapshot()
         }
+        updateSpeedSummary()
     }
 
     func refresh() async {
@@ -67,6 +71,7 @@ class SpeedViewModel: ObservableObject {
         _ = await service.purgeMemory()
         systemInfo = await service.getSystemInfo()
         isPurging = false
+        scanStore?.invalidate(.speed)
     }
 
     func disableLoginItem(_ item: LoginItem) async {
@@ -89,5 +94,17 @@ class SpeedViewModel: ObservableObject {
         } catch {
             errorMessage = "Failed to enable \(item.name): \(error.localizedDescription)"
         }
+    }
+
+    private func updateSpeedSummary() {
+        guard let info = systemInfo else { return }
+        var issues: [String] = []
+        if info.memoryUsedPercent > 80 { issues.append("High memory usage: \(Int(info.memoryUsedPercent))%") }
+        if info.diskUsedPercent > 80 { issues.append("Low disk space: \(Formatters.fileSize(Int64(info.diskFree))) free") }
+        if info.cpuUsage > 70 { issues.append("High CPU: \(Int(info.cpuUsage))%") }
+        scanStore?.updateSummary(ModuleScanSummary(
+            module: .speed, itemCount: issues.count, totalSize: 0,
+            issues: issues, timestamp: Date()
+        ))
     }
 }

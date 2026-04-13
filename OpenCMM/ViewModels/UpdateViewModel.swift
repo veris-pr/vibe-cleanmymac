@@ -11,6 +11,8 @@ class UpdateViewModel: ObservableObject {
     @Published var isMasInstalled = false
     @Published var showConfirmation = false
 
+    var scanStore: ScanStore?
+
     private let service = UpdateService()
     private let masService = MasService()
     private let deps = DependencyManager.shared
@@ -52,6 +54,13 @@ class UpdateViewModel: ObservableObject {
         updates = allUpdates
         isChecking = false
         checkComplete = true
+
+        // Update dashboard
+        let issues = updates.prefix(3).map { "\($0.name) → \($0.availableVersion)" }
+        scanStore?.updateSummary(ModuleScanSummary(
+            module: .update, itemCount: updates.count, totalSize: 0,
+            issues: Array(issues), timestamp: Date()
+        ))
     }
 
     func updateSelected() async {
@@ -78,6 +87,7 @@ class UpdateViewModel: ObservableObject {
             }
         }
         isUpdating = false
+        scanStore?.invalidate(.update)
     }
 
     func updateSingle(_ app: AppUpdateInfo) async {
@@ -98,6 +108,7 @@ class UpdateViewModel: ObservableObject {
                 updates.removeAll { $0.id == app.id }
             }
         }
+        scanStore?.invalidate(.update)
     }
 
     func toggleApp(_ id: UUID) {

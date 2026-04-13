@@ -11,6 +11,8 @@ class CleanViewModel: ObservableObject {
     @Published var showConfirmation = false
     @Published var expandedSections: Set<UUID> = []
 
+    var scanStore: ScanStore?
+
     private let service = CleaningService()
 
     var totalSize: Int64 {
@@ -32,6 +34,15 @@ class CleanViewModel: ObservableObject {
         expandedSections = Set(scanResults.map(\.id))
         isScanning = false
         scanComplete = true
+
+        // Update dashboard
+        let totalSz = scanResults.reduce(0) { $0 + $1.totalSize }
+        let count = scanResults.reduce(0) { $0 + $1.items.count }
+        let issues = scanResults.map { "\($0.category): \(Formatters.fileSize($0.totalSize))" }
+        scanStore?.updateSummary(ModuleScanSummary(
+            module: .clean, itemCount: count, totalSize: totalSz,
+            issues: issues, timestamp: Date()
+        ))
     }
 
     func clean() async {
@@ -43,6 +54,7 @@ class CleanViewModel: ObservableObject {
         scanResults = []
         scanComplete = false
         isCleaning = false
+        scanStore?.invalidate(.clean)
     }
 
     func toggleCategory(_ index: Int) {

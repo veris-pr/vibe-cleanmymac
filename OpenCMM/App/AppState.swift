@@ -5,6 +5,8 @@ class AppState: ObservableObject {
     @Published var selectedModule: Module = .smartCare
     @Published var hasCompletedSetup: Bool
 
+    let scanStore = ScanStore()
+
     // Shared ViewModels — persist across navigation
     let smartCareVM = SmartCareViewModel()
     let cleanVM = CleanViewModel()
@@ -16,6 +18,14 @@ class AppState: ObservableObject {
 
     init() {
         self.hasCompletedSetup = UserDefaults.standard.bool(forKey: "hasCompletedSetup")
+
+        // Wire scan store to all VMs
+        smartCareVM.scanStore = scanStore
+        cleanVM.scanStore = scanStore
+        protectVM.scanStore = scanStore
+        speedVM.scanStore = scanStore
+        updateVM.scanStore = scanStore
+        declutterVM.scanStore = scanStore
     }
 
     func completeSetup() {

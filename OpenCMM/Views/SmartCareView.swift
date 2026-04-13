@@ -3,6 +3,7 @@ import SwiftUI
 struct SmartCareView: View {
     @ObservedObject var viewModel: SmartCareViewModel
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var scanStore: ScanStore
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,7 +17,7 @@ struct SmartCareView: View {
 
             if viewModel.isScanning {
                 scanningView
-            } else if viewModel.scanComplete {
+            } else if scanStore.hasScanResults {
                 resultsView
             } else {
                 welcomeView
@@ -81,15 +82,15 @@ struct SmartCareView: View {
                 // Health score
                 VStack(spacing: Theme.Spacing.md) {
                     ProgressRing(
-                        progress: Double(viewModel.healthScore) / 100.0,
+                        progress: Double(scanStore.healthScore) / 100.0,
                         size: 88, lineWidth: 7,
                         thresholds: true, invertedThresholds: true
                     )
                     Text("Health Score")
                         .font(Theme.Font.heading)
                         .foregroundStyle(Theme.Colors.foreground)
-                    if viewModel.totalIssues > 0 {
-                        Text("\(viewModel.totalIssues) issue(s) found")
+                    if scanStore.totalIssues > 0 {
+                        Text("\(scanStore.totalIssues) issue(s) found")
                             .font(Theme.Font.body)
                             .foregroundStyle(Theme.Colors.muted)
                     } else {
@@ -97,12 +98,19 @@ struct SmartCareView: View {
                             .font(Theme.Font.body)
                             .foregroundStyle(Theme.Colors.success)
                     }
+
+                    // Last scanned date
+                    if let lastDate = scanStore.lastScanDate {
+                        Text("Last scanned \(Formatters.relativeDate(lastDate))")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                    }
                 }
                 .padding(.top, Theme.Spacing.lg)
 
                 // Module cards grid
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Theme.Spacing.md)], spacing: Theme.Spacing.md) {
-                    ForEach(viewModel.summaries) { summary in
+                    ForEach(scanStore.orderedSummaries) { summary in
                         ModuleCard(summary: summary) {
                             appState.selectedModule = summary.module
                         }

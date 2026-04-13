@@ -18,6 +18,8 @@ class DeclutterViewModel: ObservableObject {
     @Published var showConfirmation = false
     @Published var largeSortOrder: LargeSortOrder = .size
 
+    var scanStore: ScanStore?
+
     private let service = DuplicateFinderService()
     private let czkawkaService = CzkawkaService()
     private let deps = DependencyManager.shared
@@ -74,6 +76,14 @@ class DeclutterViewModel: ObservableObject {
         tempFiles = await temp
         isScanning = false
         scanComplete = true
+
+        // Update dashboard
+        let wastedSpace = duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
+        let issues = duplicateGroups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
+        scanStore?.updateSummary(ModuleScanSummary(
+            module: .declutter, itemCount: duplicateGroups.count, totalSize: wastedSpace,
+            issues: Array(issues), timestamp: Date()
+        ))
     }
 
     func removeDuplicates() async {
@@ -84,6 +94,7 @@ class DeclutterViewModel: ObservableObject {
             duplicateGroups.removeAll()
         }
         isRemoving = false
+        scanStore?.invalidate(.declutter)
     }
 
     func removeLargeFiles() async {
@@ -98,6 +109,7 @@ class DeclutterViewModel: ObservableObject {
         }
         largeFiles.removeAll { $0.isSelected }
         isRemoving = false
+        scanStore?.invalidate(.declutter)
     }
 
     func removeSimilarImages() async {
@@ -114,6 +126,7 @@ class DeclutterViewModel: ObservableObject {
         }
         similarImages.removeAll()
         isRemoving = false
+        scanStore?.invalidate(.declutter)
     }
 
     func removeTempFiles() async {
@@ -128,6 +141,7 @@ class DeclutterViewModel: ObservableObject {
         }
         tempFiles.removeAll()
         isRemoving = false
+        scanStore?.invalidate(.declutter)
     }
 
     func toggleLargeFile(_ id: UUID) {

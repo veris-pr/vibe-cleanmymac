@@ -15,6 +15,7 @@ struct OpenCMMApp: App {
                 }
             }
             .environmentObject(appState)
+            .environmentObject(appState.scanStore)
             .frame(minWidth: 800, minHeight: 560)
         }
         .windowStyle(.titleBar)
