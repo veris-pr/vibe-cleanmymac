@@ -13,7 +13,9 @@ class UninstallViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var lastFreedSize: Int64 = 0
     @Published var showConfirmation = false
+    @Published var showBatchConfirmation = false
     @Published var sortOrder: SortOrder = .name
+    @Published var selectedAppPaths: Set<String> = []
 
     private let service = UninstallService()
 
@@ -24,6 +26,25 @@ class UninstallViewModel: ObservableObject {
 
     var totalLeftoverSize: Int64 {
         leftovers.reduce(0) { $0 + $1.size }
+    }
+
+    var selectedCount: Int { selectedAppPaths.count }
+
+    var selectedTotalSize: Int64 {
+        filteredApps.filter { selectedAppPaths.contains($0.path) }
+            .reduce(0) { $0 + $1.size }
+    }
+
+    func toggleApp(_ app: InstalledApp) {
+        if selectedAppPaths.contains(app.path) {
+            selectedAppPaths.remove(app.path)
+        } else {
+            selectedAppPaths.insert(app.path)
+        }
+    }
+
+    func isAppSelected(_ app: InstalledApp) -> Bool {
+        selectedAppPaths.contains(app.path)
     }
 
     func loadApps() async {
@@ -63,6 +84,27 @@ class UninstallViewModel: ObservableObject {
             errorMessage = "Failed to remove \(app.name). It may be in use."
         }
 
+        isUninstalling = false
+    }
+
+    func uninstallBatch() async {
+        isUninstalling = true
+        errorMessage = nil
+        var totalFreed: Int64 = 0
+
+        let appsToRemove = apps.filter { selectedAppPaths.contains($0.path) }
+        for app in appsToRemove {
+            let appLeftovers = await service.findLeftovers(for: app)
+            let result = await service.uninstall(app: app, leftovers: appLeftovers)
+            if result.removedApp {
+                totalFreed += result.freedBytes
+                apps.removeAll { $0.path == app.path }
+            }
+        }
+
+        selectedAppPaths.removeAll()
+        lastFreedSize = totalFreed
+        applyFilter()
         isUninstalling = false
     }
 

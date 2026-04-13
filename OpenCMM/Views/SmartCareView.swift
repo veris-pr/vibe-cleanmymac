@@ -117,8 +117,8 @@ struct SmartCareView: View {
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
 
-                // Scan again
-                Button("Scan Again") { viewModel.startScan() }
+                // Rescan
+                Button("Rescan") { viewModel.startScan() }
                     .font(Theme.Font.bodyMedium)
                     .buttonStyle(.bordered)
                     .controlSize(.regular)

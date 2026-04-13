@@ -50,7 +50,7 @@ struct SpaceLensView: View {
                         ProgressView()
                             .controlSize(.small)
                     }
-                    Button("Refresh") { viewModel.startScan() }
+                    Button("Rescan") { viewModel.startScan() }
                         .font(Theme.Font.bodyMedium)
                         .buttonStyle(.bordered)
                         .controlSize(.small)

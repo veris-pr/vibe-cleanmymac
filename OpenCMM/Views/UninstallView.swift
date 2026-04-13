@@ -51,6 +51,18 @@ struct UninstallView: View {
                 Text("This will move \(app.name) and \(viewModel.leftovers.count) leftover items to Trash.\n\nThis action can be undone from Trash.")
             }
         }
+        .confirmationDialog(
+            "Uninstall \(viewModel.selectedCount) App\(viewModel.selectedCount == 1 ? "" : "s")",
+            isPresented: $viewModel.showBatchConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Uninstall \(viewModel.selectedCount) app\(viewModel.selectedCount == 1 ? "" : "s")", role: .destructive) {
+                Task { await viewModel.uninstallBatch() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Selected apps and their leftover files will be moved to Trash.")
+        }
     }
 
     // MARK: - App List
@@ -118,76 +130,84 @@ struct UninstallView: View {
                     LazyVStack(spacing: 0) {
                         ForEach(viewModel.filteredApps) { app in
                             appRow(app)
-                            Divider().padding(.leading, 56)
+                            Divider().padding(.leading, 72)
                         }
                     }
                     .padding(.vertical, Theme.Spacing.xs)
                 }
             }
 
-            Divider()
-
-            // Footer
-            HStack {
-                Text("\(viewModel.filteredApps.count) apps")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted)
-                Spacer()
-                Button("Refresh") {
-                    Task { await viewModel.loadApps() }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.vertical, Theme.Spacing.sm)
+            // Action bar
+            actionBar(
+                label: viewModel.selectedCount > 0
+                    ? "\(viewModel.selectedCount) app\(viewModel.selectedCount == 1 ? "" : "s") · \(Formatters.fileSize(viewModel.selectedTotalSize))"
+                    : "\(viewModel.filteredApps.count) apps",
+                buttonTitle: "Uninstall",
+                isWorking: viewModel.isUninstalling,
+                action: {
+                    if viewModel.selectedCount > 0 {
+                        viewModel.showBatchConfirmation = true
+                    }
+                },
+                secondaryTitle: "Rescan",
+                secondaryAction: { Task { await viewModel.loadApps() } }
+            )
         }
     }
 
     private func appRow(_ app: InstalledApp) -> some View {
-        Button {
-            Task { await viewModel.selectApp(app) }
-        } label: {
-            HStack(spacing: Theme.Spacing.md) {
-                // App icon
-                if let icon = app.icon {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .cornerRadius(6)
-                } else {
-                    Image(systemName: "app.fill")
-                        .font(.system(size: 24))
+        HStack(spacing: Theme.Spacing.sm) {
+            Toggle("", isOn: Binding(
+                get: { viewModel.isAppSelected(app) },
+                set: { _ in viewModel.toggleApp(app) }
+            ))
+            .toggleStyle(.checkbox)
+            .labelsHidden()
+
+            Button {
+                Task { await viewModel.selectApp(app) }
+            } label: {
+                HStack(spacing: Theme.Spacing.md) {
+                    // App icon
+                    if let icon = app.icon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 32, height: 32)
+                            .cornerRadius(6)
+                    } else {
+                        Image(systemName: "app.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(Theme.Colors.muted)
+                            .frame(width: 32, height: 32)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(app.name)
+                            .font(Theme.Font.bodyMedium)
+                            .foregroundStyle(Theme.Colors.foreground)
+                            .lineLimit(1)
+                        Text(app.bundleIdentifier)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Text(Formatters.fileSize(app.size))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.secondary)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Theme.Colors.muted)
-                        .frame(width: 32, height: 32)
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(app.name)
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                        .lineLimit(1)
-                    Text(app.bundleIdentifier)
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted)
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                Text(Formatters.fileSize(app.size))
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Theme.Colors.secondary)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Theme.Colors.muted)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.vertical, Theme.Spacing.sm)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.sm)
     }
 
     // MARK: - App Detail
