@@ -44,16 +44,6 @@ enum ShellExecutor {
         try run("/bin/zsh", arguments: ["-c", command], ignoreExitCode: ignoreExitCode)
     }
 
-    /// Run a command with admin privileges via macOS authorization prompt.
-    /// DEPRECATED: Use shellWithSudo + AdminAuthManager instead.
-    @discardableResult
-    static func shellWithAdmin(_ command: String) throws -> String {
-        let escaped = command.replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "do shell script \"\(escaped)\" with administrator privileges"
-        return try run("/usr/bin/osascript", arguments: ["-e", script])
-    }
-
     /// Run a command with sudo, piping the password via stdin.
     /// No osascript, no random permission dialogs.
     @discardableResult

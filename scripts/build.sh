@@ -21,6 +21,11 @@ if [ -f "OpenCMM/Resources/AppIcon.icns" ]; then
     echo "🎨 App icon copied"
 fi
 
+# Copy entitlements
+if [ -f "OpenCMM/Resources/OpenCMM.entitlements" ]; then
+    cp "OpenCMM/Resources/OpenCMM.entitlements" "$APP_BUNDLE/Contents/Resources/"
+fi
+
 cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -55,4 +60,13 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 PLIST
 
 echo "✅ App bundle created at: $APP_BUNDLE"
+
+# Ad-hoc code sign — prevents macOS TCC prompts (Screen Recording, etc.)
+# No Apple Developer account needed. Uses local signature so macOS can
+# consistently track permission decisions.
+echo "🔏 Code signing (ad-hoc)..."
+codesign --force --deep --sign - \
+    --entitlements "OpenCMM/Resources/OpenCMM.entitlements" \
+    "$APP_BUNDLE"
+echo "✅ Signed: $APP_BUNDLE"
 echo "   Run: open $APP_BUNDLE"
