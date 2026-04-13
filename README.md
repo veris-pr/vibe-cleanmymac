@@ -43,18 +43,24 @@ Quick access from the menu bar — jump to any module or see your Mac's status a
 
 ## Installation
 
+### Download (Easiest)
+
+Go to the [**Releases**](https://github.com/veris-pr/vibe-cleanmymac/releases) page, download `OpenCMM.dmg`, open it, and drag OpenCMM to your Applications folder.
+
+> **First launch:** Right-click the app → Open (required once to bypass macOS Gatekeeper for unsigned apps).
+
+### Install Script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/veris-pr/vibe-cleanmymac/main/scripts/install.sh | bash
+```
+
 ### Build from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/open-cmm.git
-cd open-cmm
-
-# Build and create app bundle
-chmod +x scripts/build.sh scripts/create-dmg.sh
+git clone https://github.com/veris-pr/vibe-cleanmymac.git
+cd vibe-cleanmymac
 ./scripts/build.sh
-
-# Run the app
 open build/OpenCMM.app
 ```
 
@@ -63,7 +69,13 @@ open build/OpenCMM.app
 ```bash
 ./scripts/build.sh
 ./scripts/create-dmg.sh
-# Installer at build/OpenCMM.dmg
+# → build/OpenCMM.dmg
+```
+
+### Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/veris-pr/vibe-cleanmymac/main/scripts/uninstall.sh | bash
 ```
 
 ### Open in Xcode
