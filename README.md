@@ -5,66 +5,65 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
     <img src="https://img.shields.io/badge/platform-macOS%2013+-brightgreen?style=flat-square" alt="Platform">
     <img src="https://img.shields.io/badge/Swift-5.9+-orange?style=flat-square" alt="Swift">
+    <img src="https://img.shields.io/badge/dependencies-0-green?style=flat-square" alt="Zero Dependencies">
   </p>
 </div>
 
 ## What is OpenCMM?
 
-OpenCMM is a free, open-source alternative to CleanMyMac. It's a native macOS app that helps you keep your Mac clean, safe, and fast — with a beautiful SwiftUI interface and a menu bar icon for quick access.
+OpenCMM is a free, open-source alternative to CleanMyMac. It's a native macOS app built entirely in SwiftUI — no Electron, no web views — that helps you keep your Mac clean, safe, and organized.
 
-**Six modules. One Overview scan. Powered by the best open-source tools.**
-
-<p align="center">
-  <em>Overview scans your Mac across all modules in one click.</em>
-</p>
+**Eight modules. One Overview scan. Zero Swift package dependencies. Powered by the best open-source CLI tools.**
 
 ## Features
 
-### 🧹 Sweep — Free up space for things you truly need
-Clear out hidden system junk to make room for your apps, photos, and other important stuff. Scans system caches, user caches, browser data, logs, Xcode artifacts, and trash. Per-item selection with confirmation dialogs.
+### 🧹 Sweep — Free up disk space
+Scans and removes system caches, user caches, browser data, logs, Xcode artifacts, and trash. Per-item selection with confirmation dialogs.
 
-### 🛡️ Security — Neutralize threats before they do any harm
+### 🛡️ Security — Detect threats and audit your system
 Deep malware scanning powered by **ClamAV** (millions of signatures). System auditing via **osquery** — launch items, listening ports, browser extensions, firewall and SIP status. Falls back to pattern-based detection when tools aren't installed.
 
-### ⚡ Boost — Make your slow Mac fast again
-Real-time CPU, memory, and disk gauges with color-coded thresholds. Apple Silicon metrics via **mactop** (GPU, temperatures, power consumption, per-core stats). Auto-refresh mode, login item management.
+### ⚡ Boost — Manage startup items
+View and manage Launch Agents and Launch Daemons. Enable or disable startup items that slow down your boot. Basic system info (hostname, macOS version, uptime).
 
-### 🔄 Updates — Keep your apps up to date
+### 🔄 Updates — Keep your apps current
 Homebrew formula and cask updates plus **Mac App Store** updates via **mas**. Update individual apps or all at once.
 
-### 📦 Duplicates — Take control of the clutter
-Fast duplicate detection via **fclones**. Similar images, videos, and music via **czkawka**. Large file finder with sort options. Temp file cleanup. Interactive "keep" selection.
+### 📦 Uninstaller — Completely remove apps
+Discovers all installed applications, scans 9 leftover locations (App Support, Caches, Preferences, Logs, Containers, Group Containers, Crash Reports, Saved State, HTTP Storages), and removes everything cleanly.
 
-### 🔍 Disk Map — See what's taking up space
-Visual disk usage map powered by **gdu**. Expandable directory tree showing size, percentage, and bar visualization. Drill into any folder to find space hogs.
+### 🔍 Duplicates — Find and remove clutter
+Fast duplicate detection via **fclones**. Similar images, videos, and music via **czkawka**. Large file finder. Temp file cleanup. Interactive "keep" selection.
 
-### ✨ Overview — One scan. Six modules.
-Run all modules in parallel with one click. Get a health score and tappable summary cards to jump into any module.
+### 🗺️ Disk Map — See what's taking up space
+Visual disk usage tree powered by **gdu**. Expandable directories showing size, percentage, and bar visualization.
+
+### ✨ Overview — One scan, four modules
+Run Sweep, Security, Updates, and Duplicates in parallel with one click. Get a health score and tappable summary cards.
 
 ### 🖥️ Menu Bar
-Quick access from the menu bar — jump to any module or see your Mac's status at a glance.
+Quick access from the menu bar — see last scan results, run a quick scan, or open the app.
 
 ## Tool Integrations
 
-OpenCMM integrates the best open-source CLI tools for each job. All tools are **optional** — modules gracefully degrade without them, and offer one-click Homebrew installation from within the app.
+All CLI tools are **optional**. Modules work without them (with graceful fallbacks) and offer one-click Homebrew installation from within the app.
 
-| Tool | Stars | Module | Purpose |
-|------|-------|--------|---------|
-| [ClamAV](https://github.com/Cisco-Talos/clamav) | 4K+ | Security | Industry-standard antivirus engine |
-| [osquery](https://github.com/osquery/osquery) | 23K+ | Security | SQL-powered system auditing |
-| [mactop](https://github.com/metaspartan/mactop) | 1K+ | Boost | Apple Silicon performance monitor |
-| [mas](https://github.com/mas-cli/mas) | 12K+ | Updates | Mac App Store CLI |
-| [fclones](https://github.com/pkolaczk/fclones) | 2.7K+ | Duplicates | High-performance duplicate finder |
-| [czkawka](https://github.com/qarmin/czkawka) | 30K+ | Duplicates | Similar images/videos/music finder |
-| [gdu](https://github.com/dundee/gdu) | 5.5K+ | Disk Map | Fast disk usage analyzer |
+| Tool | Module | Purpose |
+|------|--------|---------|
+| [ClamAV](https://github.com/Cisco-Talos/clamav) | Security | Industry-standard antivirus engine |
+| [osquery](https://github.com/osquery/osquery) | Security | SQL-powered system auditing |
+| [mas](https://github.com/mas-cli/mas) | Updates | Mac App Store CLI |
+| [fclones](https://github.com/pkolaczk/fclones) | Duplicates | High-performance duplicate finder |
+| [czkawka](https://github.com/qarmin/czkawka) | Duplicates | Similar images/videos/music finder |
+| [gdu](https://github.com/dundee/gdu) | Disk Map | Fast disk usage analyzer |
 
 ## Installation
 
-### Download (Easiest)
+### Download
 
 Go to the [**Releases**](https://github.com/veris-pr/vibe-cleanmymac/releases) page, download `OpenCMM.dmg`, open it, and drag OpenCMM to your Applications folder.
 
-> **First launch:** Right-click the app → Open (required once to bypass macOS Gatekeeper for unsigned apps).
+> **First launch:** Right-click the app → Open (required once for unsigned apps).
 
 ### Install Script
 
@@ -77,75 +76,83 @@ curl -fsSL https://raw.githubusercontent.com/veris-pr/vibe-cleanmymac/main/scrip
 ```bash
 git clone https://github.com/veris-pr/vibe-cleanmymac.git
 cd vibe-cleanmymac
-./scripts/build.sh
+make app                  # builds release + creates signed .app bundle
 open build/OpenCMM.app
 ```
 
-### Create DMG Installer
+### Create DMG
 
 ```bash
-./scripts/build.sh
-./scripts/create-dmg.sh
-# → build/OpenCMM.dmg
+make dmg    # → build/OpenCMM.dmg
 ```
 
 ### Uninstall
 
 ```bash
+# From the app: Settings → Uninstall All removes managed tools + app data
+# Full removal:
 curl -fsSL https://raw.githubusercontent.com/veris-pr/vibe-cleanmymac/main/scripts/uninstall.sh | bash
 ```
 
-### Open in Xcode
+## Architecture
 
-```bash
-open Package.swift
+```
+┌─────────────────────────────────────────────────────┐
+│  OpenCMMApp (@main)                                 │
+│    └─ AppState (@MainActor ObservableObject)        │
+│         ├─ ScanStore ← shared state (all modules)   │
+│         ├─ 8 ViewModels (all @MainActor)            │
+│         └─ selectedModule → NavigationSplitView     │
+└─────────────────────────────────────────────────────┘
+
+View → ViewModel (@MainActor) → Service (actor) → ShellExecutor
+                 ↕
+           ScanStore (central read/write)
 ```
 
-## Requirements
-
-- macOS 13 (Ventura) or later
-- Swift 5.9+ / Xcode 15+
-
-## Tech Stack
-
-- **UI**: SwiftUI (native macOS)
-- **Language**: Swift
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **Package Manager**: Swift Package Manager
-- **Distribution**: App bundle + DMG
+**Key design decisions:**
+- **MVVM** with a shared `ScanStore` as central state
+- **All ViewModels are `@MainActor`** — `@Published` updates always on main thread
+- **All Services are Swift `actor` types** — concurrency-safe, heavy work off main thread
+- **ShellExecutor** is the single point for all shell commands — injects Homebrew PATH, prevents pipe deadlocks
+- **Zero Swift package dependencies** — only system frameworks (SwiftUI, Foundation, AppKit)
+- **Ad-hoc code signed** — prevents macOS TCC permission prompts without needing an Apple Developer account
+- **No sudo, no osascript** — the app never escalates privileges or sends Apple Events
 
 ## Project Structure
 
 ```
 OpenCMM/
-├── App/           # App entry point, delegate, state management
-├── Views/         # SwiftUI views for each module
-├── ViewModels/    # Business logic and state for views
-├── Models/        # Data models (ScanResult, ThreatItem, etc.)
-├── Services/      # Core services (cleaning, scanning, performance, etc.)
-├── Components/    # Reusable UI components (ProgressRing, ModuleCard, etc.)
-├── Utilities/     # Helpers (ShellExecutor, FileUtils, Formatters)
-└── Resources/     # Assets and entitlements
+├── App/           # OpenCMMApp, AppState, AppDelegate
+├── Views/         # SwiftUI views (one per module)
+├── ViewModels/    # @MainActor business logic (one per module)
+├── Models/        # Data structs (ScanResult, ThreatItem, InstalledApp, etc.)
+├── Services/      # actor services (CleaningService, DependencyManager, etc.)
+├── Components/    # Reusable UI (Theme, ProgressRing, ModuleCard, DependencyBanner)
+├── Utilities/     # ShellExecutor, FileUtils, Formatters, AppConstants
+└── Resources/     # AppIcon, entitlements, asset catalog
+scripts/
+├── build.sh       # Creates .app bundle + ad-hoc codesigns
+├── create-dmg.sh  # Creates distributable DMG
+├── release.sh     # Tags + GitHub Release via `gh`
+├── install.sh     # curl-pipe installer from GitHub Releases
+└── uninstall.sh   # Full removal (app + tools + data)
 ```
+
+## Requirements
+
+- macOS 13 (Ventura) or later
+- Swift 5.9+ / Xcode 15+ (for building from source)
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+For AI agents working on this codebase, see [agents.md](agents.md) for architecture details, principles, and common mistakes to avoid.
 
 ## Acknowledgments
 
-Inspired by:
-- [CleanMyMac](https://cleanmymac.com) by MacPaw
-- [Mole](https://github.com/tw93/mole) by Tw93
-
-Powered by:
-- [ClamAV](https://github.com/Cisco-Talos/clamav) — Antivirus engine
-- [osquery](https://github.com/osquery/osquery) — System auditing
-- [mactop](https://github.com/metaspartan/mactop) — Apple Silicon monitor
-- [mas](https://github.com/mas-cli/mas) — Mac App Store CLI
-- [fclones](https://github.com/pkolaczk/fclones) — Duplicate finder
-- [czkawka](https://github.com/qarmin/czkawka) — Similar file finder
-- [gdu](https://github.com/dundee/gdu) — Disk usage analyzer
+Inspired by [CleanMyMac](https://cleanmymac.com) by MacPaw and [Mole](https://github.com/tw93/mole) by Tw93.
 
 ## License
 

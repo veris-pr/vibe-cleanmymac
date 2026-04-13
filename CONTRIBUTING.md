@@ -63,11 +63,15 @@ Each module is self-contained with a View, ViewModel, and Service:
 
 - **Sweep**: System junk, caches, logs
 - **Security**: Malware detection, privacy cleanup
-- **Boost**: Performance optimization, RAM management
+- **Boost**: Startup item management
 - **Updates**: Software update management
-- **Duplicates**: Duplicate files, large file detection
+- **Uninstaller**: Complete app removal with leftover scanning
+- **Duplicates**: Duplicate files, similar images, large file detection
+- **Disk Map**: Visual disk usage analysis
 
 If you want to improve a module, the Service layer is where the core logic lives.
+
+For AI agents and detailed architecture docs, see [agents.md](agents.md).
 
 ## Reporting Issues
 
