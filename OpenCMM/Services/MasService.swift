@@ -18,7 +18,7 @@ actor MasService {
 
     func listInstalled() async -> [AppStoreApp] {
         guard let mas = await dependencyManager.path(for: .mas) else { return [] }
-        guard let output = try? ShellExecutor.shell("\(ShellExecutor.quote(mas)) list 2>/dev/null") else { return [] }
+        guard let output = try? await ShellExecutor.shellAsync("\(ShellExecutor.quote(mas)) list 2>/dev/null") else { return [] }
 
         // Format: "497799835 Xcode (15.4)"
         return output.components(separatedBy: "\n").compactMap { line in
@@ -43,7 +43,7 @@ actor MasService {
 
     func listOutdated() async -> [AppStoreApp] {
         guard let mas = await dependencyManager.path(for: .mas) else { return [] }
-        guard let output = try? ShellExecutor.shell("\(ShellExecutor.quote(mas)) outdated 2>/dev/null") else { return [] }
+        guard let output = try? await ShellExecutor.shellAsync("\(ShellExecutor.quote(mas)) outdated 2>/dev/null") else { return [] }
 
         // Format: "497799835 Xcode (15.4 -> 16.0)"
         return output.components(separatedBy: "\n").compactMap { line in

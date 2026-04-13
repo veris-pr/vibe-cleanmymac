@@ -14,7 +14,7 @@ actor SpaceLensService {
         }
 
         // gdu -o- outputs JSON to stdout
-        guard let output = try? ShellExecutor.shell("\(gdu) -o- \(ShellExecutor.quote(path)) 2>/dev/null"),
+        guard let output = try? await ShellExecutor.shellAsync("\(gdu) -o- \(ShellExecutor.quote(path)) 2>/dev/null"),
               let data = output.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return await analyzeFallback(path: path)

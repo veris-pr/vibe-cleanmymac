@@ -16,7 +16,7 @@ actor CzkawkaService {
         guard !existingPaths.isEmpty else { return [] }
 
         let dirArgs = existingPaths.map { "-d \(ShellExecutor.quote($0))" }.joined(separator: " ")
-        guard let output = try? ShellExecutor.shell("\(cli) similar-images \(dirArgs) --json-compact 2>/dev/null") else { return [] }
+        guard let output = try? await ShellExecutor.shellAsync("\(cli) similar-images \(dirArgs) --json-compact 2>/dev/null") else { return [] }
         return parseSimilarGroups(output)
     }
 
@@ -27,7 +27,7 @@ actor CzkawkaService {
         guard !existingPaths.isEmpty else { return [] }
 
         let dirArgs = existingPaths.map { "-d \(ShellExecutor.quote($0))" }.joined(separator: " ")
-        guard let output = try? ShellExecutor.shell("\(cli) temporary \(dirArgs) --json-compact 2>/dev/null") else { return [] }
+        guard let output = try? await ShellExecutor.shellAsync("\(cli) temporary \(dirArgs) --json-compact 2>/dev/null") else { return [] }
         return parseTempFiles(output)
     }
 

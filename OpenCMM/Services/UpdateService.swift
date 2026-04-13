@@ -47,7 +47,7 @@ actor UpdateService {
     private func checkBrew(command: String, source: UpdateSource) async -> [AppUpdateInfo]? {
         guard await dependencyManager.isHomebrewInstalled else { return nil }
         do {
-            let output = try ShellExecutor.shell(command)
+            let output = try await ShellExecutor.shellAsync(command)
             guard let data = output.data(using: .utf8),
                   let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
                 return nil

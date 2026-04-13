@@ -69,7 +69,7 @@ actor DuplicateFinderService {
 
         let pathArgs = existingPaths.map { ShellExecutor.quote($0) }.joined(separator: " ")
 
-        guard let output = try? ShellExecutor.shell(
+        guard let output = try? await ShellExecutor.shellAsync(
             "\(ShellExecutor.quote(fclones)) group \(pathArgs) --format json 2>/dev/null"
         ), !output.isEmpty else {
             // Fall back to native if fclones fails
