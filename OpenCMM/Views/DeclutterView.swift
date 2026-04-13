@@ -5,6 +5,7 @@ struct DeclutterView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // MARK: - Header
             moduleHeader(
                 icon: "doc.on.doc",
                 title: "Duplicates",
@@ -19,6 +20,7 @@ struct DeclutterView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isScanning {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -27,14 +29,9 @@ struct DeclutterView: View {
                     Text("Scanning for duplicates and large files...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
-                    Button("Stop") { viewModel.cancelScan() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.scanComplete {
-                // Tab picker
                 Picker("", selection: $viewModel.selectedTab) {
                     ForEach(DeclutterTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -46,16 +43,15 @@ struct DeclutterView: View {
 
                 switch viewModel.selectedTab {
                 case .duplicates:
-                    duplicatesView
+                    duplicatesBody
                 case .similarImages:
-                    similarImagesView
+                    similarImagesBody
                 case .largeFiles:
-                    largeFilesView
+                    largeFilesBody
                 case .tempFiles:
-                    tempFilesView
+                    tempFilesBody
                 }
             } else {
-                // Dependency banners
                 VStack(spacing: Theme.Spacing.sm) {
                     DependencyBanner(
                         toolName: "fclones",
@@ -82,11 +78,22 @@ struct DeclutterView: View {
                 EmptyStateView(
                     icon: "doc.on.doc",
                     message: "Find clutter",
-                    detail: "Deep scan for duplicates, large forgotten files, and wasted storage. Uses full file hashing for accurate results.",
-                    buttonTitle: "Start Scan",
-                    action: { viewModel.startScan() }
+                    detail: "Deep scan for duplicates, large forgotten files, and wasted storage. Uses full file hashing for accurate results."
                 )
                 Spacer()
+            }
+
+            // MARK: - Footer
+            if viewModel.isScanning {
+                footerBar {
+                    ghostButton("Stop") { viewModel.cancelScan() }
+                }
+            } else if viewModel.scanComplete {
+                currentTabFooter
+            } else {
+                footerBar {
+                    ScanButton(title: "Start Scan") { viewModel.startScan() }
+                }
             }
         }
         .background(Theme.Colors.background)
@@ -123,16 +130,75 @@ struct DeclutterView: View {
         }
     }
 
+    // MARK: - Tab Footer
+
+    @ViewBuilder
+    private var currentTabFooter: some View {
+        switch viewModel.selectedTab {
+        case .duplicates:
+            if viewModel.duplicateGroups.isEmpty {
+                footerBar { ghostButton("Rescan") { viewModel.startScan() } }
+            } else {
+                actionBar(
+                    label: "Wasted space: \(Formatters.fileSize(viewModel.totalWastedSpace))",
+                    buttonTitle: "Remove",
+                    isWorking: viewModel.isRemoving,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
+                )
+            }
+        case .similarImages:
+            if viewModel.similarImages.isEmpty {
+                footerBar { ghostButton("Rescan") { viewModel.startScan() } }
+            } else {
+                actionBar(
+                    label: "\(viewModel.similarImages.flatMap(\.files).filter { !$0.keepThis }.count) image(s) to remove",
+                    buttonTitle: "Remove",
+                    isWorking: viewModel.isRemoving,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
+                )
+            }
+        case .largeFiles:
+            if viewModel.largeFiles.isEmpty {
+                footerBar { ghostButton("Rescan") { viewModel.startScan() } }
+            } else {
+                actionBar(
+                    label: "\(Formatters.fileSize(viewModel.totalLargeFilesSize)) selected",
+                    buttonTitle: "Remove",
+                    isWorking: viewModel.isRemoving,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
+                )
+            }
+        case .tempFiles:
+            if viewModel.tempFiles.isEmpty {
+                footerBar { ghostButton("Rescan") { viewModel.startScan() } }
+            } else {
+                actionBar(
+                    label: "\(Formatters.fileSize(viewModel.totalTempFilesSize)) in temp files",
+                    buttonTitle: "Remove",
+                    isWorking: viewModel.isRemoving,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
+                )
+            }
+        }
+    }
+
     // MARK: - Duplicates Tab
 
-    private var duplicatesView: some View {
+    private var duplicatesBody: some View {
         Group {
             if viewModel.duplicateGroups.isEmpty {
                 Spacer()
                 SuccessStateView(
                     message: "No duplicates found",
-                    detail: nil,
-                    action: { viewModel.startScan() }
+                    detail: nil
                 )
                 Spacer()
             } else {
@@ -176,15 +242,6 @@ struct DeclutterView: View {
                     }
                 }
                 .listStyle(.inset)
-
-                actionBar(
-                    label: "Wasted space: \(Formatters.fileSize(viewModel.totalWastedSpace))",
-                    buttonTitle: "Remove",
-                    isWorking: viewModel.isRemoving,
-                    action: { viewModel.showConfirmation = true },
-                    secondaryTitle: "Rescan",
-                    secondaryAction: { viewModel.startScan() }
-                )
             }
         }
     }
@@ -199,7 +256,7 @@ struct DeclutterView: View {
 
     // MARK: - Similar Images Tab
 
-    private var similarImagesView: some View {
+    private var similarImagesBody: some View {
         Group {
             if viewModel.similarImages.isEmpty {
                 Spacer()
@@ -211,8 +268,7 @@ struct DeclutterView: View {
                     } else {
                         SuccessStateView(
                             message: "No similar images found",
-                            detail: nil,
-                            action: { viewModel.startScan() }
+                            detail: nil
                         )
                     }
                 }
@@ -263,31 +319,22 @@ struct DeclutterView: View {
                     }
                 }
                 .listStyle(.inset)
-
-                actionBar(
-                    label: "\(viewModel.similarImages.flatMap(\.files).filter { !$0.keepThis }.count) image(s) to remove",
-                    buttonTitle: "Remove",
-                    isWorking: viewModel.isRemoving,
-                    action: { viewModel.showConfirmation = true }
-                )
             }
         }
     }
 
     // MARK: - Large Files Tab
 
-    private var largeFilesView: some View {
+    private var largeFilesBody: some View {
         Group {
             if viewModel.largeFiles.isEmpty {
                 Spacer()
                 SuccessStateView(
                     message: "No large files found",
-                    detail: nil,
-                    action: { viewModel.startScan() }
+                    detail: nil
                 )
                 Spacer()
             } else {
-                // Sort picker
                 HStack {
                     Text("Sort by:")
                         .font(Theme.Font.caption)
@@ -342,20 +389,13 @@ struct DeclutterView: View {
                     }
                 }
                 .listStyle(.inset)
-
-                actionBar(
-                    label: "\(Formatters.fileSize(viewModel.totalLargeFilesSize)) selected",
-                    buttonTitle: "Remove",
-                    isWorking: viewModel.isRemoving,
-                    action: { viewModel.showConfirmation = true }
-                )
             }
         }
     }
 
     // MARK: - Temp Files Tab
 
-    private var tempFilesView: some View {
+    private var tempFilesBody: some View {
         Group {
             if viewModel.tempFiles.isEmpty {
                 Spacer()
@@ -367,8 +407,7 @@ struct DeclutterView: View {
                     } else {
                         SuccessStateView(
                             message: "No temp files found",
-                            detail: nil,
-                            action: { viewModel.startScan() }
+                            detail: nil
                         )
                     }
                 }
@@ -408,13 +447,6 @@ struct DeclutterView: View {
                     }
                 }
                 .listStyle(.inset)
-
-                actionBar(
-                    label: "\(Formatters.fileSize(viewModel.totalTempFilesSize)) in temp files",
-                    buttonTitle: "Remove",
-                    isWorking: viewModel.isRemoving,
-                    action: { viewModel.showConfirmation = true }
-                )
             }
         }
     }

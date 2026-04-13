@@ -5,6 +5,7 @@ struct UpdateView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // MARK: - Header
             moduleHeader(
                 icon: "arrow.down.circle",
                 title: "Update",
@@ -19,6 +20,7 @@ struct UpdateView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isChecking {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -27,10 +29,6 @@ struct UpdateView: View {
                     Text("Checking for updates...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
-                    Button("Stop") { viewModel.cancelCheck() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.checkComplete {
@@ -38,60 +36,13 @@ struct UpdateView: View {
                     Spacer()
                     SuccessStateView(
                         message: "All apps are up to date",
-                        detail: nil,
-                        action: { viewModel.startCheckForUpdates() }
+                        detail: nil
                     )
                     Spacer()
                 } else {
-                    List {
-                        ForEach(viewModel.updates) { app in
-                            HStack(spacing: Theme.Spacing.sm) {
-                                Toggle("", isOn: Binding(
-                                    get: { app.isSelected },
-                                    set: { _ in viewModel.toggleApp(app.id) }
-                                ))
-                                .toggleStyle(.checkbox)
-                                .labelsHidden()
-
-                                Image(systemName: app.source == .appStore ? "app.badge" : "shippingbox")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundStyle(Theme.Colors.muted)
-                                    .frame(width: 24)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(app.name)
-                                        .font(Theme.Font.bodyMedium)
-                                        .foregroundStyle(Theme.Colors.foreground)
-                                    Text("\(app.currentVersion) → \(app.availableVersion)")
-                                        .font(Theme.Font.caption)
-                                        .foregroundStyle(Theme.Colors.muted)
-                                }
-                                Spacer()
-
-                                Text(app.source.rawValue)
-                                    .badgeStyle()
-
-                                Button("Update") {
-                                    Task { await viewModel.updateSingle(app) }
-                                }
-                                .font(Theme.Font.caption)
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
-                            .padding(.vertical, 3)
-                        }
-                    }
-                    .listStyle(.inset)
-
-                    actionBar(
-                        label: "\(viewModel.selectedCount) of \(viewModel.updateCount) selected",
-                        buttonTitle: "Update All",
-                        isWorking: viewModel.isUpdating,
-                        action: { viewModel.showConfirmation = true }
-                    )
+                    updatesList
                 }
             } else {
-                // Dependency banners
                 VStack(spacing: Theme.Spacing.sm) {
                     DependencyBanner(
                         toolName: "Homebrew",
@@ -118,11 +69,31 @@ struct UpdateView: View {
                 EmptyStateView(
                     icon: "arrow.down.circle",
                     message: "Check for updates",
-                    detail: "Update all your Homebrew and App Store apps to improve security and stability.",
-                    buttonTitle: "Start Scan",
-                    action: { viewModel.startCheckForUpdates() }
+                    detail: "Update all your Homebrew and App Store apps to improve security and stability."
                 )
                 Spacer()
+            }
+
+            // MARK: - Footer
+            if viewModel.isChecking {
+                footerBar {
+                    ghostButton("Stop") { viewModel.cancelCheck() }
+                }
+            } else if viewModel.checkComplete && !viewModel.updates.isEmpty {
+                actionBar(
+                    label: "\(viewModel.selectedCount) of \(viewModel.updateCount) selected",
+                    buttonTitle: "Update All",
+                    isWorking: viewModel.isUpdating,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startCheckForUpdates() }
+                )
+            } else {
+                footerBar {
+                    ScanButton(title: viewModel.checkComplete ? "Rescan" : "Start Scan") {
+                        viewModel.startCheckForUpdates()
+                    }
+                }
             }
         }
         .background(Theme.Colors.background)
@@ -142,5 +113,49 @@ struct UpdateView: View {
         } message: {
             Text("The selected apps will be updated to their latest versions.")
         }
+    }
+
+    // MARK: - Updates List
+
+    private var updatesList: some View {
+        List {
+            ForEach(viewModel.updates) { app in
+                HStack(spacing: Theme.Spacing.sm) {
+                    Toggle("", isOn: Binding(
+                        get: { app.isSelected },
+                        set: { _ in viewModel.toggleApp(app.id) }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .labelsHidden()
+
+                    Image(systemName: app.source == .appStore ? "app.badge" : "shippingbox")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Theme.Colors.muted)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(app.name)
+                            .font(Theme.Font.bodyMedium)
+                            .foregroundStyle(Theme.Colors.foreground)
+                        Text("\(app.currentVersion) → \(app.availableVersion)")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                    }
+                    Spacer()
+
+                    Text(app.source.rawValue)
+                        .badgeStyle()
+
+                    Button("Update") {
+                        Task { await viewModel.updateSingle(app) }
+                    }
+                    .font(Theme.Font.caption)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.vertical, 3)
+            }
+        }
+        .listStyle(.inset)
     }
 }

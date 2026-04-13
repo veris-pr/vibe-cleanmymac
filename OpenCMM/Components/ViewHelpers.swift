@@ -48,21 +48,8 @@ func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @esc
                 .foregroundStyle(Theme.Colors.muted)
             Spacer()
             if let secondaryTitle, let secondaryAction {
-                Button(action: secondaryAction) {
-                    Text(secondaryTitle)
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Theme.Colors.subtle)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.sm)
-                                .stroke(Theme.Colors.border, lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(isWorking)
+                ghostButton(secondaryTitle, action: secondaryAction)
+                    .disabled(isWorking)
             }
             Button(action: action) {
                 HStack(spacing: 6) {
@@ -88,14 +75,44 @@ func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @esc
     .background(Theme.Colors.background)
 }
 
+/// Ghost (secondary) button — used standalone in footers.
+func ghostButton(_ title: String, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        Text(title)
+            .font(Theme.Font.bodyMedium)
+            .foregroundStyle(Theme.Colors.foreground)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Theme.Colors.subtle)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.sm)
+                    .stroke(Theme.Colors.border, lineWidth: 1)
+            )
+    }
+    .buttonStyle(.plain)
+}
+
+/// Standard footer with just a ghost button (for empty/success states).
+func footerBar(@ViewBuilder content: () -> some View) -> some View {
+    VStack(spacing: 0) {
+        Divider()
+        HStack {
+            Spacer()
+            content()
+        }
+        .padding(.horizontal, Theme.Spacing.xl)
+        .padding(.vertical, Theme.Spacing.md)
+    }
+    .background(Theme.Colors.background)
+}
+
 // MARK: - Empty State
 
 struct EmptyStateView: View {
     let icon: String
     let message: String
     let detail: String
-    let buttonTitle: String?
-    let action: () -> Void
 
     var body: some View {
         VStack(spacing: Theme.Spacing.lg) {
@@ -114,11 +131,6 @@ struct EmptyStateView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 380)
             }
-
-            if let buttonTitle {
-                ScanButton(title: buttonTitle, action: action)
-                    .padding(.top, Theme.Spacing.sm)
-            }
         }
     }
 }
@@ -128,8 +140,6 @@ struct EmptyStateView: View {
 struct SuccessStateView: View {
     let message: String
     let detail: String?
-    var buttonTitle: String = "Rescan"
-    let action: () -> Void
 
     var body: some View {
         VStack(spacing: Theme.Spacing.md) {
@@ -149,12 +159,6 @@ struct SuccessStateView: View {
                     .font(Theme.Font.body)
                     .foregroundStyle(Theme.Colors.muted)
             }
-
-            Button(buttonTitle, action: action)
-                .font(Theme.Font.bodyMedium)
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-                .padding(.top, Theme.Spacing.xs)
         }
     }
 }

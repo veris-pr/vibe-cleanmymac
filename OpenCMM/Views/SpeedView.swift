@@ -19,6 +19,7 @@ struct SpeedView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isLoading {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -32,7 +33,6 @@ struct SpeedView: View {
             } else if (!viewModel.hostname.isEmpty && viewModel.hostname != "Mac") || !viewModel.loginItems.isEmpty || viewModel.isMacmonInstalled {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
-                        // macmon install banner (if not installed)
                         if !viewModel.isMacmonInstalled {
                             DependencyBanner(
                                 toolName: "macmon",
@@ -45,17 +45,14 @@ struct SpeedView: View {
                             .padding(.horizontal, Theme.Spacing.lg)
                         }
 
-                        // Live metrics (if macmon installed)
                         if let metrics = viewModel.metrics {
                             metricsCard(metrics)
                                 .padding(.horizontal, Theme.Spacing.lg)
                         }
 
-                        // Startup items
                         startupItemsCard
                             .padding(.horizontal, Theme.Spacing.lg)
 
-                        // System details
                         systemCard
                             .padding(.horizontal, Theme.Spacing.lg)
                     }
@@ -66,11 +63,16 @@ struct SpeedView: View {
                 EmptyStateView(
                     icon: "gauge.with.needle",
                     message: "Manage startup items",
-                    detail: "View and manage login items and launch agents that run at startup.",
-                    buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.loadData() } }
+                    detail: "View and manage login items and launch agents that run at startup."
                 )
                 Spacer()
+            }
+
+            // MARK: - Footer
+            if !viewModel.isLoading {
+                footerBar {
+                    ghostButton("Rescan") { Task { await viewModel.loadData() } }
+                }
             }
         }
         .background(Theme.Colors.background)

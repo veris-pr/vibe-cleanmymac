@@ -5,6 +5,7 @@ struct SpaceLensView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // MARK: - Header
             moduleHeader(
                 icon: "circle.grid.cross",
                 title: "Disk Map",
@@ -19,6 +20,7 @@ struct SpaceLensView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isScanning && viewModel.currentNode == nil {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -27,21 +29,15 @@ struct SpaceLensView: View {
                     Text("Analyzing disk usage...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
-                    Button("Stop") { viewModel.cancelScan() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                 }
                 Spacer()
             } else if let current = viewModel.currentNode {
-                // Breadcrumb navigation
                 breadcrumbBar
                     .padding(.horizontal, Theme.Spacing.lg)
                     .padding(.vertical, Theme.Spacing.sm)
 
                 Divider()
 
-                // Header with total size
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(current.name)
@@ -56,15 +52,10 @@ struct SpaceLensView: View {
                         ProgressView()
                             .controlSize(.small)
                     }
-                    Button("Rescan") { viewModel.startScan() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.vertical, Theme.Spacing.sm)
 
-                // Directory listing
                 List {
                     ForEach(current.children) { node in
                         SpaceLensRow(
@@ -84,11 +75,24 @@ struct SpaceLensView: View {
                 EmptyStateView(
                     icon: "circle.grid.cross",
                     message: "Analyze disk usage",
-                    detail: "Scan your home folder to see which directories and files are taking up the most space. Click any folder to explore deeper.",
-                    buttonTitle: "Start Scan",
-                    action: { viewModel.startScan() }
+                    detail: "Scan your home folder to see which directories and files are taking up the most space. Click any folder to explore deeper."
                 )
                 Spacer()
+            }
+
+            // MARK: - Footer
+            if viewModel.isScanning && viewModel.currentNode == nil {
+                footerBar {
+                    ghostButton("Stop") { viewModel.cancelScan() }
+                }
+            } else if viewModel.currentNode != nil {
+                footerBar {
+                    ghostButton("Rescan") { viewModel.startScan() }
+                }
+            } else {
+                footerBar {
+                    ScanButton(title: "Start Scan") { viewModel.startScan() }
+                }
             }
         }
         .background(Theme.Colors.background)

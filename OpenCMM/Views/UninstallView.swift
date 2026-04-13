@@ -126,9 +126,7 @@ struct UninstallView: View {
                 EmptyStateView(
                     icon: "app.dashed",
                     message: viewModel.searchText.isEmpty ? "No applications found" : "No matching apps",
-                    detail: viewModel.searchText.isEmpty ? "No apps detected in /Applications" : "No apps matching \"\(viewModel.searchText)\"",
-                    buttonTitle: nil,
-                    action: {}
+                    detail: viewModel.searchText.isEmpty ? "No apps detected in /Applications" : "No apps matching \"\(viewModel.searchText)\""
                 )
                 Spacer()
             } else {

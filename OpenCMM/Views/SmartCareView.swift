@@ -7,6 +7,7 @@ struct SmartCareView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // MARK: - Header
             moduleHeader(
                 icon: "square.grid.2x2",
                 title: "Overview",
@@ -21,31 +22,33 @@ struct SmartCareView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isScanning {
                 scanningView
             } else if scanStore.hasScanResults {
-                resultsView
+                resultsBody
             } else {
-                welcomeView
+                Spacer()
+                EmptyStateView(
+                    icon: "square.grid.2x2",
+                    message: "System Scan",
+                    detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter."
+                )
+                Spacer()
+            }
+
+            // MARK: - Footer
+            if !viewModel.isScanning {
+                footerBar {
+                    if scanStore.hasScanResults {
+                        ghostButton("Rescan") { viewModel.startScan() }
+                    } else {
+                        ScanButton(title: "Start Scan") { viewModel.startScan() }
+                    }
+                }
             }
         }
         .background(Theme.Colors.background)
-    }
-
-    // MARK: - Welcome
-
-    private var welcomeView: some View {
-        VStack {
-            Spacer()
-            EmptyStateView(
-                icon: "square.grid.2x2",
-                message: "System Scan",
-                detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
-                buttonTitle: "Start Scan",
-                action: { viewModel.startScan() }
-            )
-            Spacer()
-        }
     }
 
     // MARK: - Scanning
@@ -69,62 +72,35 @@ struct SmartCareView: View {
                     .progressViewStyle(.linear)
                     .frame(maxWidth: 280)
                     .tint(Theme.Colors.secondary)
-
-                Button("Stop") { viewModel.cancelScan() }
-                    .font(Theme.Font.bodyMedium)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
             }
             Spacer()
+
+            footerBar {
+                ghostButton("Stop") { viewModel.cancelScan() }
+            }
         }
     }
 
-    // MARK: - Results
+    // MARK: - Results Body
 
-    private var resultsView: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: Theme.Spacing.md) {
-                    // Last scanned date
-                    if let lastDate = scanStore.lastScanDate {
-                        Text("Last scanned \(Formatters.relativeDate(lastDate))")
-                            .font(Theme.Font.caption)
-                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
-                            .padding(.top, Theme.Spacing.md)
-                    }
-
-                    // Module cards — full width
-                    ForEach(scanStore.orderedSummaries) { summary in
-                        ModuleCard(summary: summary) {
-                            appState.selectedModule = summary.module
-                        }
-                    }
-                    .padding(.horizontal, Theme.Spacing.lg)
+    private var resultsBody: some View {
+        ScrollView {
+            VStack(spacing: Theme.Spacing.md) {
+                if let lastDate = scanStore.lastScanDate {
+                    Text("Last scanned \(Formatters.relativeDate(lastDate))")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                        .padding(.top, Theme.Spacing.md)
                 }
-                .padding(.bottom, Theme.Spacing.md)
-            }
 
-            // Footer
-            Divider()
-            HStack {
-                Spacer()
-                Button(action: { viewModel.startScan() }) {
-                    Text("Rescan")
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Theme.Colors.subtle)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.sm)
-                                .stroke(Theme.Colors.border, lineWidth: 1)
-                        )
+                ForEach(scanStore.orderedSummaries) { summary in
+                    ModuleCard(summary: summary) {
+                        appState.selectedModule = summary.module
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, Theme.Spacing.lg)
             }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.vertical, Theme.Spacing.md)
+            .padding(.bottom, Theme.Spacing.md)
         }
     }
 }

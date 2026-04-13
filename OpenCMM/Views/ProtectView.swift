@@ -19,6 +19,7 @@ struct ProtectView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            // MARK: - Body
             if viewModel.isScanning {
                 Spacer()
                 VStack(spacing: Theme.Spacing.md) {
@@ -27,10 +28,6 @@ struct ProtectView: View {
                     Text(viewModel.isClamAVInstalled ? "Deep scanning with ClamAV..." : "Scanning for threats...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
-                    Button("Stop") { viewModel.cancelScan() }
-                        .font(Theme.Font.bodyMedium)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.scanComplete {
@@ -41,79 +38,17 @@ struct ProtectView: View {
                     Spacer()
                     SuccessStateView(
                         message: "Your Mac is secure",
-                        detail: "No threats or privacy risks detected.",
-                        action: { viewModel.startScan() }
+                        detail: "No threats or privacy risks detected."
                     )
                     Spacer()
-                } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // Threats list
-                            ForEach(viewModel.threats) { threat in
-                                HStack(spacing: Theme.Spacing.sm) {
-                                    Toggle("", isOn: Binding(
-                                        get: { threat.isSelected },
-                                        set: { _ in viewModel.toggleThreat(threat.id) }
-                                    ))
-                                    .toggleStyle(.checkbox)
-                                    .labelsHidden()
 
-                                    Image(systemName: threat.threatType.icon)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
-                                        .frame(width: 20)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        HStack(spacing: 6) {
-                                            Text(threat.name)
-                                                .font(Theme.Font.body)
-                                                .foregroundStyle(Theme.Colors.foreground)
-                                            Text(threat.threatType.rawValue)
-                                                .badgeStyle()
-                                        }
-                                        Text(threat.path)
-                                            .font(Theme.Font.caption)
-                                            .foregroundStyle(Theme.Colors.muted.opacity(0.7))
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
-                                    }
-                                    Spacer()
-                                    Text(threat.severity.rawValue)
-                                        .font(Theme.Font.caption)
-                                        .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
-                                }
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, Theme.Spacing.lg)
-                                .revealInFinderContextMenu(path: threat.path)
-
-                                if threat.id != viewModel.threats.last?.id {
-                                    Divider().padding(.horizontal, Theme.Spacing.lg)
-                                }
-                            }
-                        }
-
-                        // System Audit section
-                        if let audit = viewModel.auditResult {
+                    if let audit = viewModel.auditResult {
+                        ScrollView {
                             auditSection(audit)
-                                .padding(.top, Theme.Spacing.lg)
                         }
                     }
-
-                    actionBar(
-                        label: "\(viewModel.threats.filter(\.isSelected).count) threat(s) selected",
-                        buttonTitle: "Remove",
-                        isWorking: viewModel.isRemoving,
-                        action: { viewModel.showConfirmation = true },
-                        secondaryTitle: "Rescan",
-                        secondaryAction: { viewModel.startScan() }
-                    )
-                }
-
-                // Audit section shown when no threats but audit exists
-                if viewModel.threats.isEmpty, let audit = viewModel.auditResult {
-                    ScrollView {
-                        auditSection(audit)
-                    }
+                } else {
+                    threatsBody
                 }
             } else {
                 DependencyBanner(
@@ -131,11 +66,31 @@ struct ProtectView: View {
                 EmptyStateView(
                     icon: "shield",
                     message: "Check for threats",
-                    detail: "Spot and remove malware hiding within seemingly innocent software. Scan for privacy risks like browser history and cookies.",
-                    buttonTitle: "Start Scan",
-                    action: { viewModel.startScan() }
+                    detail: "Spot and remove malware hiding within seemingly innocent software. Scan for privacy risks like browser history and cookies."
                 )
                 Spacer()
+            }
+
+            // MARK: - Footer
+            if viewModel.isScanning {
+                footerBar {
+                    ghostButton("Stop") { viewModel.cancelScan() }
+                }
+            } else if viewModel.scanComplete && !viewModel.threats.isEmpty {
+                actionBar(
+                    label: "\(viewModel.threats.filter(\.isSelected).count) threat(s) selected",
+                    buttonTitle: "Remove",
+                    isWorking: viewModel.isRemoving,
+                    action: { viewModel.showConfirmation = true },
+                    secondaryTitle: "Rescan",
+                    secondaryAction: { viewModel.startScan() }
+                )
+            } else {
+                footerBar {
+                    ScanButton(title: viewModel.scanComplete ? "Rescan" : "Start Scan") {
+                        viewModel.startScan()
+                    }
+                }
             }
         }
         .background(Theme.Colors.background)
@@ -154,6 +109,59 @@ struct ProtectView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Selected threats will be moved to Trash. This action cannot be undone.")
+        }
+    }
+
+    private var threatsBody: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(viewModel.threats) { threat in
+                    HStack(spacing: Theme.Spacing.sm) {
+                        Toggle("", isOn: Binding(
+                            get: { threat.isSelected },
+                            set: { _ in viewModel.toggleThreat(threat.id) }
+                        ))
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
+
+                        Image(systemName: threat.threatType.icon)
+                            .font(.system(size: 12))
+                            .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
+                            .frame(width: 20)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(threat.name)
+                                    .font(Theme.Font.body)
+                                    .foregroundStyle(Theme.Colors.foreground)
+                                Text(threat.threatType.rawValue)
+                                    .badgeStyle()
+                            }
+                            Text(threat.path)
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.muted.opacity(0.7))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Spacer()
+                        Text(threat.severity.rawValue)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(threat.severity == .critical ? Theme.Colors.destructive : Theme.Colors.muted)
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .revealInFinderContextMenu(path: threat.path)
+
+                    if threat.id != viewModel.threats.last?.id {
+                        Divider().padding(.horizontal, Theme.Spacing.lg)
+                    }
+                }
+            }
+
+            if let audit = viewModel.auditResult {
+                auditSection(audit)
+                    .padding(.top, Theme.Spacing.lg)
+            }
         }
     }
 
