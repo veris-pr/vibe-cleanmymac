@@ -86,7 +86,12 @@ struct DeclutterView: View {
             }
         }
         .background(Theme.Colors.background)
-        .task { await viewModel.checkDependencies() }
+        .task {
+            await viewModel.checkDependencies()
+            if !viewModel.scanComplete, viewModel.scanStore?.moduleSummaries[.declutter] != nil {
+                await viewModel.scan()
+            }
+        }
         .confirmationDialog(
             "Remove Selected Items",
             isPresented: $viewModel.showConfirmation,

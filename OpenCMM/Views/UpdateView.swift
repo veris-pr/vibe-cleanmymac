@@ -122,7 +122,12 @@ struct UpdateView: View {
             }
         }
         .background(Theme.Colors.background)
-        .task { await viewModel.checkDependencies() }
+        .task {
+            await viewModel.checkDependencies()
+            if !viewModel.checkComplete, viewModel.scanStore?.moduleSummaries[.update] != nil {
+                await viewModel.checkForUpdates()
+            }
+        }
         .confirmationDialog(
             "Update Selected Apps",
             isPresented: $viewModel.showConfirmation,
