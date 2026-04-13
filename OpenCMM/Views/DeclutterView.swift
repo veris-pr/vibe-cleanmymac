@@ -27,6 +27,10 @@ struct DeclutterView: View {
                     Text("Scanning for duplicates and large files...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
+                    Button("Stop") { viewModel.cancelScan() }
+                        .font(Theme.Font.bodyMedium)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.scanComplete {
@@ -80,7 +84,7 @@ struct DeclutterView: View {
                     message: "Find clutter",
                     detail: "Deep scan for duplicates, large forgotten files, and wasted storage. Uses full file hashing for accurate results.",
                     buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             }
@@ -128,7 +132,7 @@ struct DeclutterView: View {
                 SuccessStateView(
                     message: "No duplicates found",
                     detail: nil,
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             } else {
@@ -206,7 +210,7 @@ struct DeclutterView: View {
                         SuccessStateView(
                             message: "No similar images found",
                             detail: nil,
-                            action: { Task { await viewModel.scan() } }
+                            action: { viewModel.startScan() }
                         )
                     }
                 }
@@ -277,7 +281,7 @@ struct DeclutterView: View {
                 SuccessStateView(
                     message: "No large files found",
                     detail: nil,
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             } else {
@@ -362,7 +366,7 @@ struct DeclutterView: View {
                         SuccessStateView(
                             message: "No temp files found",
                             detail: nil,
-                            action: { Task { await viewModel.scan() } }
+                            action: { viewModel.startScan() }
                         )
                     }
                 }

@@ -24,6 +24,7 @@ class DeclutterViewModel: ObservableObject {
     private let service = DuplicateFinderService()
     private let czkawkaService = CzkawkaService()
     private let dependencyManager = DependencyManager.shared
+    private var scanTask: Task<Void, Never>?
 
     var totalWastedSpace: Int64 {
         duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
@@ -84,7 +85,18 @@ class DeclutterViewModel: ObservableObject {
         isInstallingCzkawka = false
     }
 
-    func scan() async {
+    func startScan() {
+        scanTask?.cancel()
+        scanTask = Task { await scan() }
+    }
+
+    func cancelScan() {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+    }
+
+    private func scan() async {
         isScanning = true
         scanComplete = false
         errorMessage = nil
@@ -96,6 +108,7 @@ class DeclutterViewModel: ObservableObject {
         largeFiles = await large
         similarImages = await similar
         tempFiles = await temp
+        guard !Task.isCancelled else { return }
         isScanning = false
         scanComplete = true
 

@@ -19,6 +19,7 @@ class UpdateViewModel: ObservableObject {
     private let service = UpdateService()
     private let masService = MasService()
     private let dependencyManager = DependencyManager.shared
+    private var scanTask: Task<Void, Never>?
 
     var updateCount: Int { updates.count }
     var selectedCount: Int { updates.filter(\.isSelected).count }
@@ -63,7 +64,18 @@ class UpdateViewModel: ObservableObject {
         isInstallingMas = false
     }
 
-    func checkForUpdates() async {
+    func startCheckForUpdates() {
+        scanTask?.cancel()
+        scanTask = Task { await checkForUpdates() }
+    }
+
+    func cancelCheck() {
+        scanTask?.cancel()
+        scanTask = nil
+        isChecking = false
+    }
+
+    private func checkForUpdates() async {
         isChecking = true
         checkComplete = false
         errorMessage = nil
@@ -73,11 +85,13 @@ class UpdateViewModel: ObservableObject {
 
         // Homebrew updates
         let brewUpdates = await service.checkForUpdates()
+        guard !Task.isCancelled else { return }
         allUpdates.append(contentsOf: brewUpdates)
 
         // App Store updates via mas
         if isMasInstalled {
             let masOutdated = await masService.listOutdated()
+            guard !Task.isCancelled else { return }
             let masUpdates = masOutdated.map { app in
                 AppUpdateInfo(
                     name: app.name,

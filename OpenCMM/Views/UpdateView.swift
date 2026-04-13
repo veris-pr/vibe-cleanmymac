@@ -27,6 +27,10 @@ struct UpdateView: View {
                     Text("Checking for updates...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
+                    Button("Stop") { viewModel.cancelCheck() }
+                        .font(Theme.Font.bodyMedium)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.checkComplete {
@@ -35,7 +39,7 @@ struct UpdateView: View {
                     SuccessStateView(
                         message: "All apps are up to date",
                         detail: nil,
-                        action: { Task { await viewModel.checkForUpdates() } }
+                        action: { viewModel.startCheckForUpdates() }
                     )
                     Spacer()
                 } else {
@@ -116,7 +120,7 @@ struct UpdateView: View {
                     message: "Check for updates",
                     detail: "Update all your Homebrew and App Store apps to improve security and stability.",
                     buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.checkForUpdates() } }
+                    action: { viewModel.startCheckForUpdates() }
                 )
                 Spacer()
             }

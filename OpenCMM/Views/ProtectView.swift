@@ -27,6 +27,10 @@ struct ProtectView: View {
                     Text(viewModel.isClamAVInstalled ? "Deep scanning with ClamAV..." : "Scanning for threats...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
+                    Button("Stop") { viewModel.cancelScan() }
+                        .font(Theme.Font.bodyMedium)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.scanComplete {
@@ -38,7 +42,7 @@ struct ProtectView: View {
                     SuccessStateView(
                         message: "Your Mac is secure",
                         detail: "No threats or privacy risks detected.",
-                        action: { Task { await viewModel.scan() } }
+                        action: { viewModel.startScan() }
                     )
                     Spacer()
                 } else {
@@ -127,7 +131,7 @@ struct ProtectView: View {
                     message: "Check for threats",
                     detail: "Spot and remove malware hiding within seemingly innocent software. Scan for privacy risks like browser history and cookies.",
                     buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             }

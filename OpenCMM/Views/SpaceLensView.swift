@@ -21,6 +21,10 @@ struct SpaceLensView: View {
                     Text("Analyzing disk usage...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
+                    Button("Stop") { viewModel.cancelScan() }
+                        .font(Theme.Font.bodyMedium)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 Spacer()
             } else if let root = viewModel.rootNode {
@@ -47,7 +51,7 @@ struct SpaceLensView: View {
                             .foregroundStyle(Theme.Colors.secondary)
                     }
                     Spacer()
-                    Button("Refresh") { Task { await viewModel.scan() } }
+                    Button("Refresh") { viewModel.startScan() }
                         .font(Theme.Font.bodyMedium)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -81,7 +85,7 @@ struct SpaceLensView: View {
                     message: "Analyze disk usage",
                     detail: "Create a visual map of your hard drive to see which folders and files are taking up the most space.",
                     buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             }

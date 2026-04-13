@@ -14,6 +14,7 @@ class CleanViewModel: ObservableObject {
     var scanStore: ScanStore?
 
     private let service = CleaningService()
+    private var scanTask: Task<Void, Never>?
 
     var totalSize: Int64 {
         scanResults.filter(\.isSelected).reduce(0) { total, result in
@@ -33,11 +34,23 @@ class CleanViewModel: ObservableObject {
         scanComplete = true
     }
 
-    func scan() async {
+    func startScan() {
+        scanTask?.cancel()
+        scanTask = Task { await scan() }
+    }
+
+    func cancelScan() {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+    }
+
+    private func scan() async {
         isScanning = true
         scanComplete = false
         errorMessage = nil
         scanResults = await service.scan()
+        guard !Task.isCancelled else { return }
         // Expand all sections by default
         expandedSections = Set(scanResults.map(\.id))
         isScanning = false

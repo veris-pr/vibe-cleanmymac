@@ -19,6 +19,7 @@ class ProtectViewModel: ObservableObject {
     private let service = MalwareScanService()
     private let osqueryService = OsqueryService()
     private let dependencyManager = DependencyManager.shared
+    private var scanTask: Task<Void, Never>?
 
     var threatCount: Int { threats.count }
     var criticalCount: Int { threats.filter { $0.severity == .critical }.count }
@@ -64,12 +65,25 @@ class ProtectViewModel: ObservableObject {
         isInstallingClamAV = false
     }
 
-    func scan() async {
+    func startScan() {
+        scanTask?.cancel()
+        scanTask = Task { await scan() }
+    }
+
+    func cancelScan() {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+    }
+
+    private func scan() async {
         isScanning = true
         scanComplete = false
         errorMessage = nil
         threats = await service.scan()
+        guard !Task.isCancelled else { return }
         auditResult = await osqueryService.audit()
+        guard !Task.isCancelled else { return }
         isScanning = false
         scanComplete = true
 

@@ -27,6 +27,10 @@ struct CleanView: View {
                     Text("Scanning for junk files...")
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.muted)
+                    Button("Stop") { viewModel.cancelScan() }
+                        .font(Theme.Font.bodyMedium)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 Spacer()
             } else if viewModel.scanComplete && !viewModel.scanResults.isEmpty {
@@ -123,7 +127,7 @@ struct CleanView: View {
                 SuccessStateView(
                     message: "Cleaned \(Formatters.fileSize(viewModel.lastCleanedSize))",
                     detail: "Your Mac has more breathing room now.",
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             } else {
@@ -133,7 +137,7 @@ struct CleanView: View {
                     message: "Find hidden junk",
                     detail: "Clear out system caches, browser data, logs, and outdated files to reclaim disk space.",
                     buttonTitle: "Start Scan",
-                    action: { Task { await viewModel.scan() } }
+                    action: { viewModel.startScan() }
                 )
                 Spacer()
             }
