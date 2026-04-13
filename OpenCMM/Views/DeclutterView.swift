@@ -179,7 +179,7 @@ struct DeclutterView: View {
 
                 actionBar(
                     label: "Wasted space: \(Formatters.fileSize(viewModel.totalWastedSpace))",
-                    buttonTitle: "Remove Duplicates",
+                    buttonTitle: "Remove",
                     isWorking: viewModel.isRemoving,
                     action: { viewModel.showConfirmation = true },
                     secondaryTitle: "Scan Again",
