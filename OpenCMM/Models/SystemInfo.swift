@@ -1,11 +1,5 @@
 import Foundation
 
-struct SystemInfo {
-    let hostname: String
-    let osVersion: String
-    let uptime: TimeInterval
-}
-
 struct LoginItem: Identifiable {
     let id = UUID()
     let name: String

@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-echo "🔨 Building OpenCMM..."
+# Extract version from AppConstants.swift (single source of truth)
+VERSION=$(grep 'static let version' OpenCMM/Utilities/AppConstants.swift | sed 's/.*"\(.*\)".*/\1/')
+echo "🔨 Building OpenCMM v${VERSION}..."
 swift build -c release
 
 BUILD_DIR=".build/release"
@@ -26,7 +28,7 @@ if [ -f "OpenCMM/Resources/OpenCMM.entitlements" ]; then
     cp "OpenCMM/Resources/OpenCMM.entitlements" "$APP_BUNDLE/Contents/Resources/"
 fi
 
-cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
+cat > "$APP_BUNDLE/Contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -38,9 +40,9 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
     <key>CFBundleIdentifier</key>
     <string>com.opencmm.app</string>
     <key>CFBundleVersion</key>
-    <string>0.2.0</string>
+    <string>${VERSION}</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.2.0</string>
+    <string>${VERSION}</string>
     <key>CFBundleExecutable</key>
     <string>OpenCMM</string>
     <key>CFBundleIconFile</key>
