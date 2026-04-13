@@ -207,7 +207,7 @@ struct SpeedView: View {
                     icon: "gauge.with.needle",
                     message: "Analyze performance",
                     detail: "View real-time CPU, memory, and disk usage. Manage startup items and free up RAM.",
-                    buttonTitle: "Analyze",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.loadData() } }
                 )
                 Spacer()

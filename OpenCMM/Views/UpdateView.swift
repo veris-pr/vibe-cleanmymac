@@ -115,7 +115,7 @@ struct UpdateView: View {
                     icon: "arrow.down.circle",
                     message: "Check for updates",
                     detail: "Update all your Homebrew and App Store apps to improve security and stability.",
-                    buttonTitle: "Check for Updates",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.checkForUpdates() } }
                 )
                 Spacer()

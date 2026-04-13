@@ -80,7 +80,7 @@ struct SpaceLensView: View {
                     icon: "circle.grid.cross",
                     message: "Analyze disk usage",
                     detail: "Create a visual map of your hard drive to see which folders and files are taking up the most space.",
-                    buttonTitle: "Scan",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.scan() } }
                 )
                 Spacer()

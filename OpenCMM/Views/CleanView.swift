@@ -120,7 +120,7 @@ struct CleanView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalSize)) to clean (\(viewModel.totalItems) items)",
-                    buttonTitle: "Sweep",
+                    buttonTitle: "Start Scan",
                     isWorking: viewModel.isCleaning,
                     action: { viewModel.showConfirmation = true }
                 )
@@ -138,7 +138,7 @@ struct CleanView: View {
                     icon: "trash",
                     message: "Find hidden junk",
                     detail: "Clear out system caches, browser data, logs, and outdated files to reclaim disk space.",
-                    buttonTitle: "Scan",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.scan() } }
                 )
                 Spacer()

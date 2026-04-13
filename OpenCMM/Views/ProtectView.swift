@@ -132,7 +132,7 @@ struct ProtectView: View {
                     icon: "shield",
                     message: "Check for threats",
                     detail: "Spot and remove malware hiding within seemingly innocent software. Scan for privacy risks like browser history and cookies.",
-                    buttonTitle: "Scan",
+                    buttonTitle: "Start Scan",
                     action: { Task { await viewModel.scan() } }
                 )
                 Spacer()
