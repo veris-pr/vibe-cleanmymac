@@ -34,12 +34,21 @@ actor DependencyManager {
         static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mactop, .mas, .czkawka, .gdu, .dust]
     }
 
+    enum InstallSource: String {
+        case notInstalled
+        case managedByUs    // We installed it via Homebrew, tracked in manifest
+        case homebrew       // User installed via Homebrew themselves
+        case direct         // Installed manually (.pkg, compiled, downloaded binary)
+    }
+
     struct ToolStatus {
         let info: ToolInfo
         let isInstalled: Bool
         let path: String?
         let version: String?
-        let managedByUs: Bool
+        let source: InstallSource
+
+        var managedByUs: Bool { source == .managedByUs }
     }
 
     // MARK: - Manifest (tracks what we installed)
@@ -87,12 +96,39 @@ actor DependencyManager {
 
     func status(for tool: ToolInfo) -> ToolStatus {
         let name = execName(for: tool)
-        let managed = isManagedByUs(tool)
         if let path = findExecutable(name) {
             let version = getVersion(tool: tool, path: path)
-            return ToolStatus(info: tool, isInstalled: true, path: path, version: version, managedByUs: managed)
+            let source = detectSource(tool: tool, path: path)
+            return ToolStatus(info: tool, isInstalled: true, path: path, version: version, source: source)
         }
-        return ToolStatus(info: tool, isInstalled: false, path: nil, version: nil, managedByUs: false)
+        return ToolStatus(info: tool, isInstalled: false, path: nil, version: nil, source: .notInstalled)
+    }
+
+    /// Determine how a tool was installed based on manifest and binary path.
+    private func detectSource(tool: ToolInfo, path: String) -> InstallSource {
+        if isManagedByUs(tool) { return .managedByUs }
+        if isBrewManaged(path: path) { return .homebrew }
+        return .direct
+    }
+
+    /// Check if a binary path originates from Homebrew (Cellar symlink or Homebrew prefix).
+    private func isBrewManaged(path: String) -> Bool {
+        // Homebrew binaries are symlinks into Cellar
+        let fm = FileManager.default
+        if let resolved = try? fm.destinationOfSymbolicLink(atPath: path) {
+            if resolved.contains("/Cellar/") || resolved.contains("/homebrew/") {
+                return true
+            }
+        }
+        // Direct Homebrew bin paths
+        if path.hasPrefix("/opt/homebrew/bin/") || path.hasPrefix("/opt/homebrew/sbin/") {
+            return true
+        }
+        // Intel Homebrew Cellar path
+        if path.hasPrefix("/usr/local/Cellar/") {
+            return true
+        }
+        return false
     }
 
     func allStatuses() -> [ToolStatus] {
@@ -118,11 +154,16 @@ actor DependencyManager {
             throw DependencyError.homebrewRequired
         }
 
-        // If already installed but not by us, just use it — don't claim ownership
         let current = status(for: tool)
-        if current.isInstalled && !current.managedByUs {
-            return
-        }
+
+        // Already managed by us — nothing to do
+        if current.source == .managedByUs { return }
+
+        // Installed via Homebrew by user — use as-is, don't claim ownership
+        if current.source == .homebrew { return }
+
+        // Installed directly (manual/pkg) — don't conflict, just use it
+        if current.source == .direct { return }
 
         let cmd = tool.isCask
             ? "brew install --cask \(tool.brewPackage)"

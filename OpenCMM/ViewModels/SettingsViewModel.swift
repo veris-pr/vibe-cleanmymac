@@ -10,9 +10,11 @@ class SettingsViewModel: ObservableObject {
         let testedVersion: String
         var isInstalled: Bool
         var version: String?
-        var managedByUs: Bool
+        var source: DependencyManager.InstallSource
         var isInstalling: Bool = false
         var isUninstalling: Bool = false
+
+        var managedByUs: Bool { source == .managedByUs }
 
         init(status: DependencyManager.ToolStatus, module: String) {
             self.id = status.info.id
@@ -22,7 +24,7 @@ class SettingsViewModel: ObservableObject {
             self.testedVersion = status.info.testedVersion
             self.isInstalled = status.isInstalled
             self.version = status.version
-            self.managedByUs = status.managedByUs
+            self.source = status.source
         }
     }
 
@@ -62,7 +64,7 @@ class SettingsViewModel: ObservableObject {
             let status = await deps.status(for: info)
             tools[idx].isInstalled = true
             tools[idx].version = status.version
-            tools[idx].managedByUs = true
+            tools[idx].source = status.source
         } catch {
             errorMessage = "\(info.name): \(error.localizedDescription)"
         }
@@ -81,7 +83,7 @@ class SettingsViewModel: ObservableObject {
             try await deps.uninstall(info)
             tools[idx].isInstalled = false
             tools[idx].version = nil
-            tools[idx].managedByUs = false
+            tools[idx].source = .notInstalled
         } catch {
             errorMessage = "\(info.name): \(error.localizedDescription)"
         }

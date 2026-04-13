@@ -116,15 +116,7 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.Colors.foreground)
                     Text(tool.module)
                         .badgeStyle()
-                    if tool.managedByUs {
-                        Text("managed")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Theme.Colors.muted)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Theme.Colors.muted.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                    }
+                    sourceBadge(for: tool.source)
                 }
                 HStack(spacing: 4) {
                     Text(tool.description)
@@ -159,14 +151,6 @@ struct SettingsView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                     }
-                } else {
-                    Text("External")
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Theme.Colors.muted.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
                 }
             } else {
                 if tool.isInstalling {
@@ -194,5 +178,37 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: Theme.Radius.md)
                 .stroke(Theme.Colors.border, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func sourceBadge(for source: DependencyManager.InstallSource) -> some View {
+        switch source {
+        case .managedByUs:
+            Text("managed")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Theme.Colors.success.opacity(0.8))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(Theme.Colors.success.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+        case .homebrew:
+            Text("homebrew")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Theme.Colors.muted)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(Theme.Colors.muted.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+        case .direct:
+            Text("manual")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Theme.Colors.warning.opacity(0.8))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(Theme.Colors.warning.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+        case .notInstalled:
+            EmptyView()
+        }
     }
 }
