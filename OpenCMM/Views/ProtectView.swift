@@ -103,7 +103,9 @@ struct ProtectView: View {
                         label: "\(viewModel.threats.filter(\.isSelected).count) threat(s) selected",
                         buttonTitle: "Remove",
                         isWorking: viewModel.isRemoving,
-                        action: { viewModel.showConfirmation = true }
+                        action: { viewModel.showConfirmation = true },
+                        secondaryTitle: "Scan Again",
+                        secondaryAction: { viewModel.startScan() }
                     )
                 }
 

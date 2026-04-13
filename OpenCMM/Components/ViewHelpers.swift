@@ -39,7 +39,7 @@ func moduleHeader(icon: String, title: String, subtitle: String) -> some View {
 
 // MARK: - Action Bar
 
-func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @escaping () -> Void) -> some View {
+func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @escaping () -> Void, secondaryTitle: String? = nil, secondaryAction: (() -> Void)? = nil) -> some View {
     VStack(spacing: 0) {
         Divider()
         HStack {
@@ -47,6 +47,15 @@ func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @esc
                 .font(Theme.Font.body)
                 .foregroundStyle(Theme.Colors.muted)
             Spacer()
+            if let secondaryTitle, let secondaryAction {
+                Button(action: secondaryAction) {
+                    Text(secondaryTitle)
+                        .font(Theme.Font.bodyMedium)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .disabled(isWorking)
+            }
             Button(action: action) {
                 HStack(spacing: 6) {
                     if isWorking {
