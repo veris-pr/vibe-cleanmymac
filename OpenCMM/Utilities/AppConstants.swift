@@ -4,29 +4,13 @@ import Foundation
 enum AppConstants {
     // MARK: - Health Score Thresholds
     enum Health {
-        static let memoryWarning: Double = 75
-        static let memoryCritical: Double = 90
         static let diskWarning: Double = 75
         static let diskCritical: Double = 90
-        static let cpuWarning: Double = 70
-        static let cpuCritical: Double = 90
 
         // Penalty points
-        static let memoryCriticalPenalty = 30
-        static let memoryWarningPenalty = 15
-        static let memoryMildPenalty = 5
         static let diskCriticalPenalty = 30
         static let diskWarningPenalty = 15
         static let diskMildPenalty = 5
-        static let cpuCriticalPenalty = 20
-        static let cpuWarningPenalty = 10
-    }
-
-    // MARK: - Summary Thresholds (displayed in module cards)
-    enum Summary {
-        static let highMemoryPercent: Double = 80
-        static let lowDiskPercent: Double = 80
-        static let highCpuPercent: Double = 70
     }
 
     // MARK: - File Size Thresholds
@@ -46,7 +30,6 @@ enum AppConstants {
 
     // MARK: - Timing
     enum Timing {
-        static let autoRefreshInterval: UInt64 = 5_000_000_000  // 5 seconds
         static let statusMessageDelay: UInt64 = 2_000_000_000   // 2 seconds
         static let completionDelay: UInt64 = 800_000_000        // 0.8 seconds
     }

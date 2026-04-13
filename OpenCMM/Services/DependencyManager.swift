@@ -30,7 +30,7 @@ actor DependencyManager {
         static let czkawka = ToolInfo(id: "czkawka", name: "czkawka", description: "Similar images, videos & music finder", brewPackage: "czkawka", isCask: false, testedVersion: "11.0.1")
         static let gdu = ToolInfo(id: "gdu", name: "gdu", description: "Fast disk usage analyzer", brewPackage: "gdu", isCask: false, testedVersion: "5.35.0")
 
-        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mactop, .mas, .czkawka, .gdu]
+        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mas, .czkawka, .gdu]
     }
 
     enum InstallSource: String {

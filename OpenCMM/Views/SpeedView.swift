@@ -8,7 +8,7 @@ struct SpeedView: View {
             moduleHeader(
                 icon: "gauge.with.needle",
                 title: "Boost",
-                subtitle: "Make your slow Mac fast again"
+                subtitle: "Manage startup items and system info"
             )
 
             Divider()
@@ -29,100 +29,9 @@ struct SpeedView: View {
                         .foregroundStyle(Theme.Colors.muted)
                 }
                 Spacer()
-            } else if let info = viewModel.systemInfo {
+            } else if !viewModel.hostname.isEmpty && viewModel.hostname != "Mac" || !viewModel.loginItems.isEmpty {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
-                        // Dependency banner for mactop
-                        if !viewModel.isMactopInstalled {
-                            DependencyBanner(
-                                toolName: "mactop",
-                                description: "Apple Silicon performance monitor for GPU usage, temperature, and per-core metrics.",
-                                isInstalled: false,
-                                isInstalling: viewModel.isMactopInstalling,
-                                installError: viewModel.mactopInstallError,
-                                installAction: { Task { await viewModel.installMactop() } }
-                            )
-                            .padding(.horizontal, Theme.Spacing.lg)
-                        }
-
-                        // Gauges
-                        HStack(spacing: Theme.Spacing.md) {
-                            gaugeCard(
-                                label: "CPU",
-                                value: Formatters.percentage(info.cpuUsage),
-                                progress: info.cpuUsage / 100.0
-                            )
-                            gaugeCard(
-                                label: "Memory",
-                                value: "\(Formatters.fileSize(info.memoryUsed)) / \(Formatters.fileSize(info.memoryTotal))",
-                                progress: info.memoryUsedPercent / 100.0
-                            )
-                            gaugeCard(
-                                label: "Disk",
-                                value: "\(Formatters.fileSize(info.diskFree)) free",
-                                progress: info.diskUsedPercent / 100.0
-                            )
-                        }
-                        .padding(.horizontal, Theme.Spacing.lg)
-
-                        // GPU & Temperature from mactop
-                        if let metrics = viewModel.mactopMetrics {
-                            HStack(spacing: Theme.Spacing.md) {
-                                if metrics.gpuUsage > 0 {
-                                    gaugeCard(
-                                        label: "GPU",
-                                        value: Formatters.percentage(metrics.gpuUsage),
-                                        progress: metrics.gpuUsage / 100.0
-                                    )
-                                }
-                                if metrics.cpuTemp > 0 {
-                                    temperatureCard(label: "CPU Temp", value: metrics.cpuTemp)
-                                }
-                                if metrics.gpuTemp > 0 {
-                                    temperatureCard(label: "GPU Temp", value: metrics.gpuTemp)
-                                }
-                            }
-                            .padding(.horizontal, Theme.Spacing.lg)
-                        }
-
-                        // Quick actions grouped under Memory
-                        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                            Text("Memory")
-                                .font(Theme.Font.heading)
-                                .foregroundStyle(Theme.Colors.foreground)
-
-                            HStack(spacing: Theme.Spacing.sm) {
-                                Button(action: { Task { await viewModel.purgeMemory() } }) {
-                                    Text(viewModel.isPurging ? "Freeing..." : "Free Up RAM")
-                                        .font(Theme.Font.bodyMedium)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-                                .disabled(viewModel.isPurging)
-
-                                Button(action: { Task { await viewModel.refresh() } }) {
-                                    Text("Refresh")
-                                        .font(Theme.Font.bodyMedium)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-
-                                Spacer()
-
-                                Toggle(isOn: Binding(
-                                    get: { viewModel.isAutoRefresh },
-                                    set: { _ in viewModel.toggleAutoRefresh() }
-                                )) {
-                                    Text("Auto-refresh")
-                                        .font(Theme.Font.bodyMedium)
-                                }
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                            }
-                        }
-                        .cardStyle()
-                        .padding(.horizontal, Theme.Spacing.lg)
-
                         // Startup items
                         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                             Text("Startup Items")
@@ -180,19 +89,11 @@ struct SpeedView: View {
                                 .font(Theme.Font.heading)
                                 .foregroundStyle(Theme.Colors.foreground)
                                 .padding(.bottom, Theme.Spacing.xs)
-                            detailRow("Computer", info.hostname)
+                            detailRow("Computer", viewModel.hostname)
                             Divider()
-                            detailRow("macOS", info.osVersion)
+                            detailRow("macOS", viewModel.osVersion)
                             Divider()
-                            detailRow("Uptime", Formatters.duration(info.uptime))
-                            if let metrics = viewModel.mactopMetrics {
-                                Divider()
-                                detailRow("Thermal State", metrics.thermalState.capitalized)
-                                if metrics.systemPower > 0 {
-                                    Divider()
-                                    detailRow("System Power", String(format: "%.1f W", metrics.systemPower))
-                                }
-                            }
+                            detailRow("Uptime", Formatters.duration(viewModel.uptime))
                         }
                         .cardStyle()
                         .padding(.horizontal, Theme.Spacing.lg)
@@ -203,9 +104,9 @@ struct SpeedView: View {
                 Spacer()
                 EmptyStateView(
                     icon: "gauge.with.needle",
-                    message: "Analyze performance",
-                    detail: "View real-time CPU, memory, and disk usage. Manage startup items and free up RAM.",
-                    buttonTitle: "Start Scan",
+                    message: "Manage startup items",
+                    detail: "View and manage login items and launch agents that run at startup.",
+                    buttonTitle: "Load",
                     action: { Task { await viewModel.loadData() } }
                 )
                 Spacer()
@@ -214,42 +115,7 @@ struct SpeedView: View {
         .background(Theme.Colors.background)
         .task {
             viewModel.loadFromStore()
-            if viewModel.systemInfo == nil {
-                return  // show empty state — don't auto-scan
-            }
         }
-    }
-
-    private func gaugeCard(label: String, value: String, progress: Double) -> some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            ProgressRing(progress: progress, size: 64, lineWidth: 4, thresholds: true)
-            Text(label)
-                .font(Theme.Font.heading)
-                .foregroundStyle(Theme.Colors.foreground)
-            Text(value)
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.muted)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .cardStyle()
-    }
-
-    private func temperatureCard(label: String, value: Double) -> some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: "thermometer.medium")
-                .font(.system(size: 24))
-                .foregroundStyle(value > 80 ? Theme.Colors.destructive : value > 60 ? Theme.Colors.warning : Theme.Colors.success)
-                .frame(height: 64)
-            Text(label)
-                .font(Theme.Font.heading)
-                .foregroundStyle(Theme.Colors.foreground)
-            Text(String(format: "%.0f°C", value))
-                .font(Theme.Font.monoSmall)
-                .foregroundStyle(Theme.Colors.muted)
-        }
-        .frame(maxWidth: .infinity)
-        .cardStyle()
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {

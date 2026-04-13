@@ -44,7 +44,6 @@ class SettingsViewModel: ObservableObject {
     private let moduleMap: [String: String] = [
         "clamav": "Security",
         "osquery": "Security",
-        "mactop": "Boost",
         "mas": "Updates",
         "fclones": "Duplicates",
         "czkawka": "Duplicates",

@@ -3,14 +3,6 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
 
-    @State private var cpuPercent: Double = 0
-    @State private var memPercent: Double = 0
-    @State private var diskPercent: Double = 0
-    @State private var diskFree: UInt64 = 0
-    @State private var memFree: UInt64 = 0
-
-    private let sysInfo = SystemInfoService()
-
     private var scanSummaries: [ModuleScanSummary] {
         appState.scanStore.orderedSummaries
     }
@@ -52,30 +44,6 @@ struct MenuBarView: View {
 
             Divider().padding(.horizontal, 8)
 
-            // MARK: – System Metrics
-            VStack(alignment: .leading, spacing: 6) {
-                Text("System")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 2)
-
-                metricRow(icon: "internaldrive", label: "Disk",
-                          value: "\(Int(diskPercent))%",
-                          detail: "\(Formatters.fileSize(diskFree)) free",
-                          percent: diskPercent)
-                metricRow(icon: "cpu", label: "CPU",
-                          value: "\(Int(cpuPercent))%",
-                          detail: nil,
-                          percent: cpuPercent)
-                metricRow(icon: "memorychip", label: "RAM",
-                          value: "\(Int(memPercent))%",
-                          detail: "\(Formatters.fileSize(memFree)) free",
-                          percent: memPercent)
-            }
-            .padding(12)
-
-            Divider().padding(.horizontal, 8)
-
             // MARK: – Actions
             VStack(spacing: 2) {
                 menuButton("Open OpenCMM", icon: "macwindow") { activateApp() }
@@ -94,7 +62,6 @@ struct MenuBarView: View {
             .padding(.vertical, 6)
         }
         .frame(width: 260)
-        .task { await refreshMetrics() }
     }
 
     // MARK: – Components
@@ -110,28 +77,6 @@ struct MenuBarView: View {
             Text(summary.hasIssues ? summaryText(summary) : "OK")
                 .font(.system(size: 11))
                 .foregroundStyle(summary.hasIssues ? Color.secondary : Color.green)
-        }
-    }
-
-    private func metricRow(icon: String, label: String, value: String, detail: String?, percent: Double) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .frame(width: 14)
-            Text(label)
-                .font(.system(size: 12))
-                .frame(width: 32, alignment: .leading)
-            Spacer()
-            if let detail {
-                Text(detail)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-            }
-            Text(value)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(barColor(percent))
-                .frame(width: 36, alignment: .trailing)
         }
     }
 
@@ -155,26 +100,11 @@ struct MenuBarView: View {
 
     // MARK: – Helpers
 
-    private func barColor(_ percent: Double) -> Color {
-        if percent > 90 { return .red }
-        if percent > 75 { return .orange }
-        return .green
-    }
-
     private func summaryText(_ s: ModuleScanSummary) -> String {
         if s.totalSize > 0 {
             return "\(s.itemCount) items · \(Formatters.fileSize(s.totalSize))"
         }
         return "\(s.itemCount) issue\(s.itemCount == 1 ? "" : "s")"
-    }
-
-    private func refreshMetrics() async {
-        let status = await sysInfo.getDetailedInfo()
-        cpuPercent = status.cpuUsage
-        memPercent = status.memoryUsedPercent
-        diskPercent = status.diskUsedPercent
-        diskFree = status.diskFree
-        memFree = status.memoryFree
     }
 
     private func activateApp() {

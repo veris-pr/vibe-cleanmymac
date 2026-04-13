@@ -13,7 +13,6 @@ class SmartCareViewModel: ObservableObject {
 
     private let cleanService = CleaningService()
     private let protectService = MalwareScanService()
-    private let performanceService = PerformanceService()
     private let updateService = UpdateService()
     private let duplicateService = DuplicateFinderService()
     private let systemInfoService = SystemInfoService()
@@ -34,7 +33,6 @@ class SmartCareViewModel: ObservableObject {
     private enum ScanOutput: Sendable {
         case clean([ScanResult], ModuleScanSummary)
         case protect([ThreatItem], ModuleScanSummary)
-        case speed(SystemInfo, ModuleScanSummary)
         case update([AppUpdateInfo], ModuleScanSummary)
         case declutter([DuplicateGroup], ModuleScanSummary)
     }
@@ -64,17 +62,11 @@ class SmartCareViewModel: ObservableObject {
                 return (1, .protect(threats, summary))
             }
 
-            group.addTask { [performanceService] in
-                let info = await performanceService.getSystemInfo()
-                let summary = ModuleScanSummary.speed(from: info)
-                return (2, .speed(info, summary))
-            }
-
             group.addTask { [updateService] in
                 let updates = await updateService.checkForUpdates()
                 let issues = updates.prefix(3).map { "\($0.name) → \($0.availableVersion)" }
                 let summary = ModuleScanSummary(module: .update, itemCount: updates.count, totalSize: 0, issues: Array(issues), timestamp: Date())
-                return (3, .update(updates, summary))
+                return (2, .update(updates, summary))
             }
 
             group.addTask { [duplicateService] in
@@ -82,7 +74,7 @@ class SmartCareViewModel: ObservableObject {
                 let wastedSpace = groups.reduce(0) { $0 + $1.wastedSpace }
                 let issues = groups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
                 let summary = ModuleScanSummary(module: .declutter, itemCount: groups.count, totalSize: wastedSpace, issues: Array(issues), timestamp: Date())
-                return (4, .declutter(groups, summary))
+                return (3, .declutter(groups, summary))
             }
 
             var completed = 0
@@ -93,16 +85,16 @@ class SmartCareViewModel: ObservableObject {
                 completed += 1
                 indexed.append(result)
 
-                let stepNames = ["Sweep", "Security", "Boost", "Updates", "Duplicates"]
+                let stepNames = ["Sweep", "Security", "Updates", "Duplicates"]
                 currentStep = "Completed \(stepNames[result.0])"
-                progress = Double(completed) / 5.0
+                progress = Double(completed) / 4.0
             }
 
             let sorted = indexed.sorted { $0.0 < $1.0 }
             outputs = sorted.map { $0.1 }
             collectedSummaries = sorted.map { pair -> ModuleScanSummary in
                 switch pair.1 {
-                case .clean(_, let s), .protect(_, let s), .speed(_, let s),
+                case .clean(_, let s), .protect(_, let s),
                      .update(_, let s), .declutter(_, let s):
                     return s
                 }
@@ -119,7 +111,6 @@ class SmartCareViewModel: ObservableObject {
                 switch output {
                 case .clean(let results, _):    store.cleanResults = results
                 case .protect(let items, _):    store.threats = items
-                case .speed(let info, _):       store.systemInfo = info
                 case .update(let apps, _):      store.updates = apps
                 case .declutter(let groups, _): store.duplicateGroups = groups
                 }

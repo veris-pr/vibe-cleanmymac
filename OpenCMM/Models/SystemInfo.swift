@@ -3,25 +3,7 @@ import Foundation
 struct SystemInfo {
     let hostname: String
     let osVersion: String
-    let cpuUsage: Double
-    let memoryTotal: UInt64
-    let memoryUsed: UInt64
-    let diskTotal: UInt64
-    let diskUsed: UInt64
     let uptime: TimeInterval
-
-    var memoryUsedPercent: Double {
-        guard memoryTotal > 0 else { return 0 }
-        return Double(memoryUsed) / Double(memoryTotal) * 100
-    }
-
-    var diskUsedPercent: Double {
-        guard diskTotal > 0 else { return 0 }
-        return Double(diskUsed) / Double(diskTotal) * 100
-    }
-
-    var memoryFree: UInt64 { memoryTotal - memoryUsed }
-    var diskFree: UInt64 { diskTotal - diskUsed }
 }
 
 struct LoginItem: Identifiable {

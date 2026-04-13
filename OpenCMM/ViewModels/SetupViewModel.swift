@@ -38,7 +38,6 @@ class SetupViewModel: ObservableObject {
         let toolDefs: [(DependencyManager.ToolInfo, String, String)] = [
             (.clamav,  "Security",   "shield"),
             (.osquery, "Security",   "magnifyingglass"),
-            (.mactop,  "Boost",      "gauge.with.needle"),
             (.mas,     "Updates",    "arrow.down.circle"),
             (.fclones, "Duplicates", "doc.on.doc"),
             (.czkawka, "Duplicates", "photo.on.rectangle"),

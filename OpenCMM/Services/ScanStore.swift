@@ -13,7 +13,6 @@ class ScanStore: ObservableObject {
     // MARK: - Detailed results (shared across modules)
     @Published var cleanResults: [ScanResult] = []
     @Published var threats: [ThreatItem] = []
-    @Published var systemInfo: SystemInfo?
     @Published var auditResult: AuditResult?
     @Published var updates: [AppUpdateInfo] = []
     @Published var duplicateGroups: [DuplicateGroup] = []
@@ -24,7 +23,7 @@ class ScanStore: ObservableObject {
     var hasScanResults: Bool { !moduleSummaries.isEmpty }
 
     var orderedSummaries: [ModuleScanSummary] {
-        [Module.clean, .protect, .speed, .update, .declutter]
+        [Module.clean, .protect, .update, .declutter]
             .compactMap { moduleSummaries[$0] }
     }
 
@@ -54,7 +53,7 @@ class ScanStore: ObservableObject {
         switch module {
         case .clean: cleanResults = []
         case .protect: threats = []; auditResult = nil
-        case .speed: systemInfo = nil
+        case .speed: break
         case .update: updates = []
         case .declutter:
             duplicateGroups = []
