@@ -23,12 +23,17 @@ struct SettingsView: View {
                                 .font(Theme.Font.heading)
                                 .foregroundStyle(Theme.Colors.foreground)
                             Spacer()
-                            Button("Refresh") {
-                                Task { await viewModel.refresh() }
+                            if viewModel.isRefreshing {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Button("Refresh") {
+                                    Task { await viewModel.refresh() }
+                                }
+                                .font(Theme.Font.caption)
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
                             }
-                            .font(Theme.Font.caption)
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
                         }
 
                         Text("OpenCMM integrates open-source CLI tools for enhanced functionality. Each module works without its tools, but produces better results with them.")

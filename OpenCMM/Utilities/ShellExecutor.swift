@@ -2,7 +2,7 @@ import Foundation
 
 enum ShellExecutor {
     @discardableResult
-    static func run(_ command: String, arguments: [String] = []) throws -> String {
+    static func run(_ command: String, arguments: [String] = [], ignoreExitCode: Bool = false) throws -> String {
         let process = Process()
         let pipe = Pipe()
 
@@ -22,21 +22,26 @@ enum ShellExecutor {
         process.environment = env
 
         try process.run()
+
+        // Read pipe BEFORE waitUntilExit to prevent deadlock.
+        // If the process output fills the pipe buffer (~64KB), the process
+        // blocks on write. Reading first drains the buffer and lets it finish.
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+
         process.waitUntilExit()
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        if process.terminationStatus != 0 && !output.isEmpty {
-            throw ShellError.failed(output)
+        if !ignoreExitCode && process.terminationStatus != 0 {
+            throw ShellError.failed(output.isEmpty ? "Command failed with exit code \(process.terminationStatus)" : output)
         }
 
         return output
     }
 
     @discardableResult
-    static func shell(_ command: String) throws -> String {
-        try run("/bin/zsh", arguments: ["-c", command])
+    static func shell(_ command: String, ignoreExitCode: Bool = false) throws -> String {
+        try run("/bin/zsh", arguments: ["-c", command], ignoreExitCode: ignoreExitCode)
     }
 
     /// Run a command with admin privileges via macOS authorization prompt.

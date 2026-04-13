@@ -35,6 +35,7 @@ class SettingsViewModel: ObservableObject {
     @Published var tools: [ToolRow] = []
     @Published var hasHomebrew = false
     @Published var errorMessage: String?
+    @Published var isRefreshing = false
     @Published var isInstallingHomebrew = false
     @Published var homebrewInstallError: String?
 
@@ -52,9 +53,11 @@ class SettingsViewModel: ObservableObject {
     ]
 
     func refresh() async {
+        isRefreshing = true
         hasHomebrew = await deps.isHomebrewInstalled
         let statuses = await deps.allStatuses()
         tools = statuses.map { ToolRow(status: $0, module: moduleMap[$0.info.id] ?? "") }
+        isRefreshing = false
     }
 
     func installHomebrew() async {
