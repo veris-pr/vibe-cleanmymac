@@ -11,11 +11,15 @@ struct MenuBarView: View {
 
     private let sysInfo = SystemInfoService()
 
+    private var scanSummaries: [ModuleScanSummary] {
+        appState.scanStore.orderedSummaries
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // MARK: – Last Scan Results
             if appState.scanStore.hasScanResults {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Last Scan")
                             .font(.system(size: 11, weight: .semibold))
@@ -27,33 +31,15 @@ struct MenuBarView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
+                    .padding(.bottom, 2)
 
-                    ForEach(appState.scanStore.orderedSummaries) { summary in
-                        HStack(spacing: 6) {
-                            Image(systemName: summary.hasIssues ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(summary.hasIssues ? .orange : .green)
-                            Text(summary.module.rawValue)
-                                .font(.system(size: 12))
-                            Spacer()
-                            if summary.hasIssues {
-                                Text(summaryText(summary))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text("OK")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.green)
-                            }
-                        }
+                    ForEach(scanSummaries) { summary in
+                        scanRow(summary)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-
-                Divider()
+                .padding(12)
             } else {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "info.circle")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
@@ -61,67 +47,71 @@ struct MenuBarView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-
-                Divider()
+                .padding(12)
             }
+
+            Divider().padding(.horizontal, 8)
 
             // MARK: – System Metrics
             VStack(alignment: .leading, spacing: 6) {
                 Text("System")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
+                    .padding(.bottom, 2)
 
-                metricRow(
-                    icon: "internaldrive",
-                    label: "Disk",
-                    value: "\(Int(diskPercent))% used",
-                    detail: "\(Formatters.fileSize(diskFree)) free",
-                    percent: diskPercent
-                )
-                metricRow(
-                    icon: "cpu",
-                    label: "CPU",
-                    value: "\(Int(cpuPercent))%",
-                    detail: nil,
-                    percent: cpuPercent
-                )
-                metricRow(
-                    icon: "memorychip",
-                    label: "RAM",
-                    value: "\(Int(memPercent))% used",
-                    detail: "\(Formatters.fileSize(memFree)) free",
-                    percent: memPercent
-                )
+                metricRow(icon: "internaldrive", label: "Disk",
+                          value: "\(Int(diskPercent))%",
+                          detail: "\(Formatters.fileSize(diskFree)) free",
+                          percent: diskPercent)
+                metricRow(icon: "cpu", label: "CPU",
+                          value: "\(Int(cpuPercent))%",
+                          detail: nil,
+                          percent: cpuPercent)
+                metricRow(icon: "memorychip", label: "RAM",
+                          value: "\(Int(memPercent))%",
+                          detail: "\(Formatters.fileSize(memFree)) free",
+                          percent: memPercent)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(12)
 
-            Divider()
+            Divider().padding(.horizontal, 8)
 
             // MARK: – Actions
-            Button("Open OpenCMM") {
-                activateApp()
-            }
-            .keyboardShortcut("o")
+            VStack(spacing: 2) {
+                menuButton("Open OpenCMM", icon: "macwindow") { activateApp() }
+                menuButton("Run Quick Scan", icon: "play.circle") {
+                    appState.selectedModule = .smartCare
+                    activateApp()
+                }
 
-            Button("Run Quick Scan") {
-                appState.selectedModule = .smartCare
-                activateApp()
-            }
+                Divider().padding(.horizontal, 4).padding(.vertical, 4)
 
-            Divider()
-
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
+                menuButton("Quit OpenCMM", icon: "power") {
+                    NSApplication.shared.terminate(nil)
+                }
             }
-            .keyboardShortcut("q")
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
         }
+        .frame(width: 260)
         .task { await refreshMetrics() }
     }
 
-    // MARK: – Helpers
+    // MARK: – Components
+
+    private func scanRow(_ summary: ModuleScanSummary) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: summary.hasIssues ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(summary.hasIssues ? .orange : .green)
+            Text(summary.module.rawValue)
+                .font(.system(size: 12))
+            Spacer()
+            Text(summary.hasIssues ? summaryText(summary) : "OK")
+                .font(.system(size: 11))
+                .foregroundStyle(summary.hasIssues ? Color.secondary : Color.green)
+        }
+    }
 
     private func metricRow(icon: String, label: String, value: String, detail: String?, percent: Double) -> some View {
         HStack(spacing: 6) {
@@ -131,6 +121,7 @@ struct MenuBarView: View {
                 .frame(width: 14)
             Text(label)
                 .font(.system(size: 12))
+                .frame(width: 32, alignment: .leading)
             Spacer()
             if let detail {
                 Text(detail)
@@ -140,8 +131,29 @@ struct MenuBarView: View {
             Text(value)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(barColor(percent))
+                .frame(width: 36, alignment: .trailing)
         }
     }
+
+    private func menuButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .frame(width: 16)
+                Text(title)
+                    .font(.system(size: 12))
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .cornerRadius(4)
+    }
+
+    // MARK: – Helpers
 
     private func barColor(_ percent: Double) -> Color {
         if percent > 90 { return .red }
