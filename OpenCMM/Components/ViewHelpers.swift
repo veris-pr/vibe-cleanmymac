@@ -51,9 +51,17 @@ func actionBar(label: String, buttonTitle: String, isWorking: Bool, action: @esc
                 Button(action: secondaryAction) {
                     Text(secondaryTitle)
                         .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(Theme.Colors.foreground)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(Theme.Colors.subtle)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.sm)
+                                .stroke(Theme.Colors.border, lineWidth: 1)
+                        )
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
+                .buttonStyle(.plain)
                 .disabled(isWorking)
             }
             Button(action: action) {

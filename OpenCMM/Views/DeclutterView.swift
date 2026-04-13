@@ -182,7 +182,7 @@ struct DeclutterView: View {
                     buttonTitle: "Remove",
                     isWorking: viewModel.isRemoving,
                     action: { viewModel.showConfirmation = true },
-                    secondaryTitle: "Scan Again",
+                    secondaryTitle: "Rescan",
                     secondaryAction: { viewModel.startScan() }
                 )
             }
