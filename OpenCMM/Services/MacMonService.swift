@@ -13,7 +13,7 @@ actor MacMonService {
         guard let macmon = await dependencyManager.path(for: .macmon) else { return nil }
 
         guard let output = try? await ShellExecutor.runAsync(
-            macmon, arguments: ["pipe", "-s", "1"]
+            macmon, arguments: ["pipe", "-s", "1", "-i", "500"]
         ) else { return nil }
 
         // macmon outputs one JSON line per sample
