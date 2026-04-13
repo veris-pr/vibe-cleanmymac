@@ -34,13 +34,13 @@ class SetupViewModel: ObservableObject {
         hasHomebrew = await deps.isHomebrewInstalled
 
         let toolDefs: [(DependencyManager.ToolInfo, String, String)] = [
-            (.clamav,  "Protect",    "shield"),
-            (.osquery, "Protect",    "magnifyingglass"),
-            (.mactop,  "Speed",      "gauge.with.needle"),
-            (.mas,     "Update",     "arrow.down.circle"),
-            (.fclones, "Declutter",  "doc.on.doc"),
-            (.czkawka, "Declutter",  "photo.on.rectangle"),
-            (.gdu,     "Space Lens", "circle.grid.cross"),
+            (.clamav,  "Security",   "shield"),
+            (.osquery, "Security",   "magnifyingglass"),
+            (.mactop,  "Boost",      "gauge.with.needle"),
+            (.mas,     "Updates",    "arrow.down.circle"),
+            (.fclones, "Duplicates", "doc.on.doc"),
+            (.czkawka, "Duplicates", "photo.on.rectangle"),
+            (.gdu,     "Disk Map",   "circle.grid.cross"),
         ]
 
         var result: [SetupTool] = []

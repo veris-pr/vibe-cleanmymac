@@ -83,7 +83,7 @@ class SmartCareViewModel: ObservableObject {
                 completed += 1
                 results.append(result)
 
-                let stepNames = ["Clean", "Protect", "Speed", "Update", "Declutter"]
+                let stepNames = ["Sweep", "Security", "Boost", "Updates", "Duplicates"]
                 currentStep = "Completed \(stepNames[result.0])"
                 progress = Double(completed) / 5.0
             }

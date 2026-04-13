@@ -61,11 +61,11 @@ OpenCMM/
 
 Each module is self-contained with a View, ViewModel, and Service:
 
-- **Clean**: System junk, caches, logs
-- **Protect**: Malware detection, privacy cleanup
-- **Speed**: Performance optimization, RAM management
-- **Update**: Software update management
-- **Declutter**: Duplicate files, large file detection
+- **Sweep**: System junk, caches, logs
+- **Security**: Malware detection, privacy cleanup
+- **Boost**: Performance optimization, RAM management
+- **Updates**: Software update management
+- **Duplicates**: Duplicate files, large file detection
 
 If you want to improve a module, the Service layer is where the core logic lives.
 

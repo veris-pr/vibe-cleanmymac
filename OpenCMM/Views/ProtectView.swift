@@ -7,7 +7,7 @@ struct ProtectView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "shield",
-                title: "Protect",
+                title: "Security",
                 subtitle: "Neutralize threats before they do any harm"
             )
 

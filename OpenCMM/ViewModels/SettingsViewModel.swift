@@ -35,14 +35,14 @@ class SettingsViewModel: ObservableObject {
     private let deps = DependencyManager.shared
 
     private let moduleMap: [String: String] = [
-        "clamav": "Protect",
-        "osquery": "Protect",
-        "mactop": "Speed",
-        "mas": "Update",
-        "fclones": "Declutter",
-        "czkawka": "Declutter",
-        "gdu": "Space Lens",
-        "dust": "Space Lens",
+        "clamav": "Security",
+        "osquery": "Security",
+        "mactop": "Boost",
+        "mas": "Updates",
+        "fclones": "Duplicates",
+        "czkawka": "Duplicates",
+        "gdu": "Disk Map",
+        "dust": "Disk Map",
     ]
 
     func refresh() async {

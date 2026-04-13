@@ -7,7 +7,7 @@ struct SpaceLensView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "circle.grid.cross",
-                title: "Space Lens",
+                title: "Disk Map",
                 subtitle: "See what's taking up space"
             )
 

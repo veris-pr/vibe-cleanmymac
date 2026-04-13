@@ -9,7 +9,7 @@ struct SmartCareView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "square.grid.2x2",
-                title: "Smart Care",
+                title: "Overview",
                 subtitle: "One scan. Five routines."
             )
 
@@ -33,9 +33,9 @@ struct SmartCareView: View {
             Spacer()
             EmptyStateView(
                 icon: "square.grid.2x2",
-                message: "Smart Care",
+                message: "System Scan",
                 detail: "Run all five maintenance routines in one scan: clean junk, detect threats, check performance, find updates, and remove clutter.",
-                buttonTitle: "Start Smart Care",
+                buttonTitle: "Start System Scan",
                 buttonIcon: "play.fill",
                 action: { viewModel.startScan() }
             )

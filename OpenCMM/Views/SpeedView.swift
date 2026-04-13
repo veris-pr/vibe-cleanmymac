@@ -7,7 +7,7 @@ struct SpeedView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "gauge.with.needle",
-                title: "Speed",
+                title: "Boost",
                 subtitle: "Make your slow Mac fast again"
             )
 

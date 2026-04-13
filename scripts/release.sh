@@ -64,12 +64,12 @@ open build/OpenCMM.app
 \`\`\`
 
 ### What's included
-- **Smart Care** — One-click scan across all 5 modules
-- **Clean** — System caches, browser data, logs, Xcode artifacts, trash
-- **Protect** — Malware detection, suspicious launch agents, privacy risks
-- **Speed** — CPU/memory/disk monitoring, startup item management, RAM purge
-- **Update** — Homebrew formula and cask updates
-- **Declutter** — Duplicate file finder, large file detection
+- **Overview** — One-click scan across all 5 modules
+- **Sweep** — System caches, browser data, logs, Xcode artifacts, trash
+- **Security** — Malware detection, suspicious launch agents, privacy risks
+- **Boost** — CPU/memory/disk monitoring, startup item management, RAM purge
+- **Updates** — Homebrew formula and cask updates
+- **Duplicates** — Duplicate file finder, large file detection
 - **Menu bar** — Quick access from the status bar
 
 Requires macOS 13 (Ventura) or later.

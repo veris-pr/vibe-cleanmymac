@@ -7,7 +7,7 @@ struct DeclutterView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "doc.on.doc",
-                title: "Declutter",
+                title: "Duplicates",
                 subtitle: "Take control of the clutter"
             )
 

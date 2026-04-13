@@ -12,33 +12,33 @@
 
 OpenCMM is a free, open-source alternative to CleanMyMac. It's a native macOS app that helps you keep your Mac clean, safe, and fast — with a beautiful SwiftUI interface and a menu bar icon for quick access.
 
-**Six modules. One Smart Care. Powered by the best open-source tools.**
+**Six modules. One Overview scan. Powered by the best open-source tools.**
 
 <p align="center">
-  <em>Smart Care scans your Mac across all modules in one click.</em>
+  <em>Overview scans your Mac across all modules in one click.</em>
 </p>
 
 ## Features
 
-### 🧹 Clean — Free up space for things you truly need
+### 🧹 Sweep — Free up space for things you truly need
 Clear out hidden system junk to make room for your apps, photos, and other important stuff. Scans system caches, user caches, browser data, logs, Xcode artifacts, and trash. Per-item selection with confirmation dialogs.
 
-### 🛡️ Protect — Neutralize threats before they do any harm
+### 🛡️ Security — Neutralize threats before they do any harm
 Deep malware scanning powered by **ClamAV** (millions of signatures). System auditing via **osquery** — launch items, listening ports, browser extensions, firewall and SIP status. Falls back to pattern-based detection when tools aren't installed.
 
-### ⚡ Speed — Make your slow Mac fast again
+### ⚡ Boost — Make your slow Mac fast again
 Real-time CPU, memory, and disk gauges with color-coded thresholds. Apple Silicon metrics via **mactop** (GPU, temperatures, power consumption, per-core stats). Auto-refresh mode, login item management.
 
-### 🔄 Update — Keep your apps up to date
+### 🔄 Updates — Keep your apps up to date
 Homebrew formula and cask updates plus **Mac App Store** updates via **mas**. Update individual apps or all at once.
 
-### 📦 Declutter — Take control of the clutter
+### 📦 Duplicates — Take control of the clutter
 Fast duplicate detection via **fclones**. Similar images, videos, and music via **czkawka**. Large file finder with sort options. Temp file cleanup. Interactive "keep" selection.
 
-### 🔍 Space Lens — See what's taking up space
+### 🔍 Disk Map — See what's taking up space
 Visual disk usage map powered by **gdu**. Expandable directory tree showing size, percentage, and bar visualization. Drill into any folder to find space hogs.
 
-### ✨ Smart Care — One scan. Six modules.
+### ✨ Overview — One scan. Six modules.
 Run all modules in parallel with one click. Get a health score and tappable summary cards to jump into any module.
 
 ### 🖥️ Menu Bar
@@ -50,13 +50,13 @@ OpenCMM integrates the best open-source CLI tools for each job. All tools are **
 
 | Tool | Stars | Module | Purpose |
 |------|-------|--------|---------|
-| [ClamAV](https://github.com/Cisco-Talos/clamav) | 4K+ | Protect | Industry-standard antivirus engine |
-| [osquery](https://github.com/osquery/osquery) | 23K+ | Protect | SQL-powered system auditing |
-| [mactop](https://github.com/metaspartan/mactop) | 1K+ | Speed | Apple Silicon performance monitor |
-| [mas](https://github.com/mas-cli/mas) | 12K+ | Update | Mac App Store CLI |
-| [fclones](https://github.com/pkolaczk/fclones) | 2.7K+ | Declutter | High-performance duplicate finder |
-| [czkawka](https://github.com/qarmin/czkawka) | 30K+ | Declutter | Similar images/videos/music finder |
-| [gdu](https://github.com/dundee/gdu) | 5.5K+ | Space Lens | Fast disk usage analyzer |
+| [ClamAV](https://github.com/Cisco-Talos/clamav) | 4K+ | Security | Industry-standard antivirus engine |
+| [osquery](https://github.com/osquery/osquery) | 23K+ | Security | SQL-powered system auditing |
+| [mactop](https://github.com/metaspartan/mactop) | 1K+ | Boost | Apple Silicon performance monitor |
+| [mas](https://github.com/mas-cli/mas) | 12K+ | Updates | Mac App Store CLI |
+| [fclones](https://github.com/pkolaczk/fclones) | 2.7K+ | Duplicates | High-performance duplicate finder |
+| [czkawka](https://github.com/qarmin/czkawka) | 30K+ | Duplicates | Similar images/videos/music finder |
+| [gdu](https://github.com/dundee/gdu) | 5.5K+ | Disk Map | Fast disk usage analyzer |
 
 ## Installation
 

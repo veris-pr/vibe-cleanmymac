@@ -35,13 +35,13 @@ class AppState: ObservableObject {
 }
 
 enum Module: String, CaseIterable, Identifiable {
-    case smartCare = "Smart Care"
-    case clean = "Clean"
-    case protect = "Protect"
-    case speed = "Speed"
-    case update = "Update"
-    case declutter = "Declutter"
-    case spaceLens = "Space Lens"
+    case smartCare = "Overview"
+    case clean = "Sweep"
+    case protect = "Security"
+    case speed = "Boost"
+    case update = "Updates"
+    case declutter = "Duplicates"
+    case spaceLens = "Disk Map"
     case settings = "Settings"
 
     var id: String { rawValue }

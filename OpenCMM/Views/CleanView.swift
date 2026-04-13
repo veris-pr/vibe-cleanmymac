@@ -7,7 +7,7 @@ struct CleanView: View {
         VStack(spacing: 0) {
             moduleHeader(
                 icon: "trash",
-                title: "Clean",
+                title: "Sweep",
                 subtitle: "Free up space for things you truly need"
             )
 
@@ -120,7 +120,7 @@ struct CleanView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalSize)) to clean (\(viewModel.totalItems) items)",
-                    buttonTitle: "Clean",
+                    buttonTitle: "Sweep",
                     isWorking: viewModel.isCleaning,
                     action: { viewModel.showConfirmation = true }
                 )
