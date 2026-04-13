@@ -61,7 +61,7 @@ struct MenuBarView: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 6)
         }
-        .frame(width: 260)
+        .frame(width: AppConstants.UI.menuBarWidth)
     }
 
     // MARK: – Components
@@ -70,13 +70,13 @@ struct MenuBarView: View {
         HStack(spacing: 6) {
             Image(systemName: summary.hasIssues ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
                 .font(.system(size: 9))
-                .foregroundStyle(summary.hasIssues ? .orange : .green)
+                .foregroundStyle(summary.hasIssues ? Theme.Colors.warning : Theme.Colors.success)
             Text(summary.module.rawValue)
                 .font(.system(size: 12))
             Spacer()
             Text(summary.hasIssues ? summaryText(summary) : "OK")
                 .font(.system(size: 11))
-                .foregroundStyle(summary.hasIssues ? Color.secondary : Color.green)
+                .foregroundStyle(summary.hasIssues ? Theme.Colors.muted : Theme.Colors.success)
         }
     }
 

@@ -26,14 +26,14 @@ class SetupViewModel: ObservableObject {
     @Published var isInstallingHomebrew = false
     @Published var homebrewInstallError: String?
 
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var selectedCount: Int {
         tools.filter { $0.isSelected && !$0.isInstalled }.count
     }
 
     func checkStatus() async {
-        hasHomebrew = await deps.isHomebrewInstalled
+        hasHomebrew = await dependencyManager.isHomebrewInstalled
 
         let toolDefs: [(DependencyManager.ToolInfo, String, String)] = [
             (.clamav,  "Security",   "shield"),
@@ -46,7 +46,7 @@ class SetupViewModel: ObservableObject {
 
         var result: [SetupTool] = []
         for (info, module, icon) in toolDefs {
-            let installed = await deps.isInstalled(info)
+            let installed = await dependencyManager.isInstalled(info)
             result.append(SetupTool(
                 info: info,
                 module: module,
@@ -69,7 +69,7 @@ class SetupViewModel: ObservableObject {
         homebrewInstallError = nil
 
         do {
-            try await deps.installHomebrew()
+            try await dependencyManager.installHomebrew()
             // The official installer runs in Terminal — poll for completion
             await pollForHomebrew()
         } catch {
@@ -79,17 +79,13 @@ class SetupViewModel: ObservableObject {
         isInstallingHomebrew = false
     }
 
-    /// Poll until Homebrew is detected (user completes install in Terminal).
     private func pollForHomebrew() async {
-        for _ in 0..<60 { // up to ~5 minutes
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            if await deps.isHomebrewInstalled {
-                hasHomebrew = true
-                await checkStatus()
-                return
-            }
+        if await dependencyManager.waitForHomebrewInstall() {
+            hasHomebrew = true
+            await checkStatus()
+        } else {
+            homebrewInstallError = "Homebrew not detected. Complete the install in Terminal, then refresh."
         }
-        homebrewInstallError = "Homebrew not detected. Complete the install in Terminal, then refresh."
     }
 
     func installSelected(completion: @escaping () -> Void) async {
@@ -110,7 +106,7 @@ class SetupViewModel: ObservableObject {
             installProgress = Double(i) / Double(toInstall.count)
 
             do {
-                try await deps.install(tool.info)
+                try await dependencyManager.install(tool.info)
                 tools[idx].installState = .done
                 tools[idx].isInstalled = true
                 tools[idx].isSelected = false
@@ -129,7 +125,7 @@ class SetupViewModel: ObservableObject {
         } else {
             installStatus = "All tools installed"
             // Brief pause so user sees completion, then proceed
-            try? await Task.sleep(nanoseconds: 800_000_000)
+            try? await Task.sleep(nanoseconds: AppConstants.Timing.completionDelay)
             completion()
         }
     }

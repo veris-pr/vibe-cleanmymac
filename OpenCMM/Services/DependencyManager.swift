@@ -25,7 +25,6 @@ actor DependencyManager {
         static let clamav = ToolInfo(id: "clamav", name: "ClamAV", description: "Industry-standard antivirus engine", brewPackage: "clamav", isCask: false, testedVersion: "1.5.2")
         static let fclones = ToolInfo(id: "fclones", name: "fclones", description: "High-performance duplicate file finder", brewPackage: "fclones", isCask: false, testedVersion: "0.35.0")
         static let osquery = ToolInfo(id: "osquery", name: "osquery", description: "SQL-powered system auditing", brewPackage: "osquery", isCask: true, testedVersion: "5.22.1")
-        static let mactop = ToolInfo(id: "mactop", name: "mactop", description: "Apple Silicon performance monitor", brewPackage: "mactop", isCask: false, testedVersion: "0.2.7")
         static let mas = ToolInfo(id: "mas", name: "mas", description: "Mac App Store CLI", brewPackage: "mas", isCask: false, testedVersion: "6.0.1")
         static let czkawka = ToolInfo(id: "czkawka", name: "czkawka", description: "Similar images, videos & music finder", brewPackage: "czkawka", isCask: false, testedVersion: "11.0.1")
         static let gdu = ToolInfo(id: "gdu", name: "gdu", description: "Fast disk usage analyzer", brewPackage: "gdu", isCask: false, testedVersion: "5.35.0")
@@ -178,6 +177,16 @@ actor DependencyManager {
         try ShellExecutor.shell("open \(ShellExecutor.quote(scriptPath))")
     }
 
+    /// Poll until Homebrew is detected (up to ~5 minutes).
+    /// Returns true if found, false if timed out.
+    func waitForHomebrewInstall() async -> Bool {
+        for _ in 0..<60 {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if isHomebrewInstalled { return true }
+        }
+        return false
+    }
+
     // MARK: - Installation via Homebrew
 
     /// Install a tool via Homebrew. Brew runs as the current user — never with sudo.
@@ -194,14 +203,14 @@ actor DependencyManager {
 
         // All brew installs run as user — brew handles its own privilege escalation for casks
         if tool.isCask {
-            try ShellExecutor.shell("brew install --cask \(tool.brewPackage)")
+            try ShellExecutor.shell("brew install --cask \(ShellExecutor.quote(tool.brewPackage))")
         } else {
-            try ShellExecutor.shell("brew install \(tool.brewPackage)")
+            try ShellExecutor.shell("brew install \(ShellExecutor.quote(tool.brewPackage))")
         }
 
         // Pin to prevent auto-upgrade
         if !tool.isCask {
-            try? ShellExecutor.shell("brew pin \(tool.brewPackage)")
+            try? ShellExecutor.shell("brew pin \(ShellExecutor.quote(tool.brewPackage))")
         }
 
         // Post-install setup for ClamAV
@@ -223,12 +232,12 @@ actor DependencyManager {
         guard isManagedByUs(tool) else { return }
 
         if !tool.isCask {
-            try? ShellExecutor.shell("brew unpin \(tool.brewPackage)")
+            try? ShellExecutor.shell("brew unpin \(ShellExecutor.quote(tool.brewPackage))")
         }
         try ShellExecutor.shell(
             tool.isCask
-                ? "brew uninstall --cask \(tool.brewPackage)"
-                : "brew uninstall \(tool.brewPackage)"
+                ? "brew uninstall --cask \(ShellExecutor.quote(tool.brewPackage))"
+                : "brew uninstall \(ShellExecutor.quote(tool.brewPackage))"
         )
 
         var manifest = loadManifest()
@@ -258,17 +267,18 @@ actor DependencyManager {
         for configPath in configPaths {
             let samplePath = configPath + ".sample"
             if !FileUtils.exists(configPath), FileUtils.exists(samplePath) {
-                _ = try? ShellExecutor.shell("cp '\(samplePath)' '\(configPath)'")
-                _ = try? ShellExecutor.shell("sed -i '' 's/^Example/#Example/' '\(configPath)'")
+                _ = try? ShellExecutor.shell("cp \(ShellExecutor.quote(samplePath)) \(ShellExecutor.quote(configPath))")
+                _ = try? ShellExecutor.shell("sed -i '' 's/^Example/#Example/' \(ShellExecutor.quote(configPath))")
             }
         }
     }
 
     private func getVersion(tool: ToolInfo, path: String) -> String? {
+        let quotedPath = ShellExecutor.quote(path)
         let cmd: String
         switch tool.id {
-        case "mas": cmd = "'\(path)' version"
-        default: cmd = "'\(path)' --version"
+        case "mas": cmd = "\(quotedPath) version"
+        default: cmd = "\(quotedPath) --version"
         }
         guard let output = try? ShellExecutor.shell(cmd) else { return nil }
         return output.components(separatedBy: "\n").first?.trimmingCharacters(in: .whitespaces)

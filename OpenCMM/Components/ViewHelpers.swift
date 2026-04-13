@@ -1,5 +1,19 @@
 import SwiftUI
 
+// MARK: - Reveal in Finder Context Menu
+
+extension View {
+    func revealInFinderContextMenu(path: String) -> some View {
+        self.contextMenu {
+            Button {
+                NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
+            } label: {
+                Label("Reveal in Finder", systemImage: "folder")
+            }
+        }
+    }
+}
+
 // MARK: - Module Header
 
 func moduleHeader(icon: String, title: String, subtitle: String) -> some View {

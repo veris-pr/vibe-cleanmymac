@@ -2,14 +2,14 @@ import Foundation
 
 /// Integrates gdu for disk usage analysis with JSON directory tree output.
 actor SpaceLensService {
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var isAvailable: Bool {
-        get async { await deps.isInstalled(.gdu) }
+        get async { await dependencyManager.isInstalled(.gdu) }
     }
 
     func analyze(path: String = FileUtils.homeDirectory()) async -> DiskNode? {
-        guard let gdu = await deps.path(for: .gdu) else {
+        guard let gdu = await dependencyManager.path(for: .gdu) else {
             return await analyzeFallback(path: path)
         }
 

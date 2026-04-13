@@ -1,7 +1,11 @@
 import Foundation
 import os
 
+private let logger = Logger(subsystem: "com.opencmm.app", category: "UpdateService")
+
 actor UpdateService {
+    private let dependencyManager = DependencyManager.shared
+
     func checkForUpdates() async -> [AppUpdateInfo] {
         var updates: [AppUpdateInfo] = []
 
@@ -22,9 +26,9 @@ actor UpdateService {
         do {
             switch app.source {
             case .homebrew:
-                try ShellExecutor.shell("brew upgrade \(app.name)")
+                try ShellExecutor.shell("brew upgrade \(ShellExecutor.quote(app.name))")
             case .homebrewCask:
-                try ShellExecutor.shell("brew upgrade --cask \(app.name)")
+                try ShellExecutor.shell("brew upgrade --cask \(ShellExecutor.quote(app.name))")
             case .appStore:
                 // App Store updates handled by MasService
                 return false
@@ -33,8 +37,7 @@ actor UpdateService {
             }
             return true
         } catch {
-            Logger(subsystem: "com.opencmm.app", category: "UpdateService")
-                .error("Failed to update \(app.name): \(error.localizedDescription)")
+            logger.error("Failed to update \(app.name): \(error.localizedDescription)")
             return false
         }
     }
@@ -42,7 +45,7 @@ actor UpdateService {
     // MARK: - Helpers
 
     private func checkBrew(command: String, source: UpdateSource) async -> [AppUpdateInfo]? {
-        guard isHomebrewInstalled() else { return nil }
+        guard await dependencyManager.isHomebrewInstalled else { return nil }
         do {
             let output = try ShellExecutor.shell(command)
             guard let data = output.data(using: .utf8),
@@ -73,9 +76,5 @@ actor UpdateService {
 
     private func checkHomebrewCaskUpdates() async -> [AppUpdateInfo]? {
         await checkBrew(command: "brew outdated --cask --greedy --json", source: .homebrewCask)
-    }
-
-    private func isHomebrewInstalled() -> Bool {
-        FileUtils.exists("/opt/homebrew/bin/brew") || FileUtils.exists("/usr/local/bin/brew")
     }
 }

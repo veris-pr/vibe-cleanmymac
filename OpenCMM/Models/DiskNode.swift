@@ -8,7 +8,6 @@ struct DiskNode: Identifiable {
     let size: Int64
     let isDirectory: Bool
     var children: [DiskNode]
-    var isExpanded: Bool = false
 
     var formattedSize: String { Formatters.fileSize(size) }
 

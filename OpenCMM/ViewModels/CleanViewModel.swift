@@ -45,11 +45,11 @@ class CleanViewModel: ObservableObject {
 
         // Update global store
         scanStore?.cleanResults = scanResults
-        let totalSz = scanResults.reduce(0) { $0 + $1.totalSize }
+        let totalSize = scanResults.reduce(0) { $0 + $1.totalSize }
         let count = scanResults.reduce(0) { $0 + $1.items.count }
         let issues = scanResults.map { "\($0.category): \(Formatters.fileSize($0.totalSize))" }
         scanStore?.updateSummary(ModuleScanSummary(
-            module: .clean, itemCount: count, totalSize: totalSz,
+            module: .clean, itemCount: count, totalSize: totalSize,
             issues: issues, timestamp: Date()
         ))
     }

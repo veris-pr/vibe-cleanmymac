@@ -10,17 +10,17 @@ class SpaceLensViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let service = SpaceLensService()
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     func checkDependencies() async {
-        isGduInstalled = await deps.isInstalled(.gdu)
+        isGduInstalled = await dependencyManager.isInstalled(.gdu)
     }
 
     func installGdu() async {
         isInstallingGdu = true
         installError = nil
         do {
-            try await deps.install(.gdu)
+            try await dependencyManager.install(.gdu)
             isGduInstalled = true
         } catch {
             installError = error.localizedDescription

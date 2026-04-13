@@ -2,15 +2,15 @@ import Foundation
 
 /// Integrates czkawka-cli for similar image/video/music detection and temp file cleanup.
 actor CzkawkaService {
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
     private let home = FileUtils.homeDirectory()
 
     var isAvailable: Bool {
-        get async { await deps.isInstalled(.czkawka) }
+        get async { await dependencyManager.isInstalled(.czkawka) }
     }
 
     func findSimilarImages(in paths: [String]? = nil) async -> [SimilarGroup] {
-        guard let cli = await deps.path(for: .czkawka) else { return [] }
+        guard let cli = await dependencyManager.path(for: .czkawka) else { return [] }
         let searchPaths = paths ?? ["\(home)/Pictures", "\(home)/Photos", "\(home)/Desktop", "\(home)/Downloads"]
         let existingPaths = searchPaths.filter { FileUtils.exists($0) }
         guard !existingPaths.isEmpty else { return [] }
@@ -21,7 +21,7 @@ actor CzkawkaService {
     }
 
     func findTempFiles(in paths: [String]? = nil) async -> [TempFileResult] {
-        guard let cli = await deps.path(for: .czkawka) else { return [] }
+        guard let cli = await dependencyManager.path(for: .czkawka) else { return [] }
         let searchPaths = paths ?? ["\(home)/Downloads", "\(home)/Desktop", "\(home)/Documents", "/tmp"]
         let existingPaths = searchPaths.filter { FileUtils.exists($0) }
         guard !existingPaths.isEmpty else { return [] }

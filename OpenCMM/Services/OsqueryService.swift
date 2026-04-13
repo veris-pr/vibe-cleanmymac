@@ -3,14 +3,14 @@ import Foundation
 /// Integrates osquery for deep system auditing.
 /// Queries launch daemons, listening ports, browser extensions, firewall status.
 actor OsqueryService {
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var isAvailable: Bool {
-        get async { await deps.isInstalled(.osquery) }
+        get async { await dependencyManager.isInstalled(.osquery) }
     }
 
     func audit() async -> AuditResult? {
-        guard let osqueryi = await deps.path(for: .osquery) else { return nil }
+        guard let osqueryi = await dependencyManager.path(for: .osquery) else { return nil }
         var result = AuditResult()
 
         // Launch items (non-Apple)
@@ -71,7 +71,7 @@ actor OsqueryService {
     }
 
     private func query(_ osqueryi: String, sql: String) -> [[String: Any]]? {
-        guard let output = try? ShellExecutor.shell("\(osqueryi) --json \"\(sql)\""),
+        guard let output = try? ShellExecutor.run(osqueryi, arguments: ["--json", sql]),
               let data = output.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             return nil

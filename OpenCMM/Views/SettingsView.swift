@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Settings view for managing tool installations after initial setup.
 struct SettingsView: View {
-    @StateObject private var viewModel = SettingsViewModel()
+    @ObservedObject var viewModel: SettingsViewModel
 
     var body: some View {
         VStack(spacing: 0) {

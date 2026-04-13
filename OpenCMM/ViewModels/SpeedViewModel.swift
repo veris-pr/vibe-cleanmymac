@@ -13,10 +13,6 @@ class SpeedViewModel: ObservableObject {
 
     private let service = PerformanceService()
 
-    func loadFromStore() {
-        // Startup items are loaded fresh each time
-    }
-
     func loadData() async {
         isLoading = true
         errorMessage = nil

@@ -33,7 +33,7 @@ struct MainView: View {
         case .spaceLens:
             SpaceLensView(viewModel: appState.spaceLensVM)
         case .settings:
-            SettingsView()
+            SettingsView(viewModel: appState.settingsVM)
         }
     }
 }

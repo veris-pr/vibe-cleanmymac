@@ -18,7 +18,7 @@ class UpdateViewModel: ObservableObject {
 
     private let service = UpdateService()
     private let masService = MasService()
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var updateCount: Int { updates.count }
     var selectedCount: Int { updates.filter(\.isSelected).count }
@@ -30,23 +30,19 @@ class UpdateViewModel: ObservableObject {
     }
 
     func checkDependencies() async {
-        isHomebrewInstalled = await deps.isHomebrewInstalled
-        isMasInstalled = await deps.isInstalled(.mas)
+        isHomebrewInstalled = await dependencyManager.isHomebrewInstalled
+        isMasInstalled = await dependencyManager.isInstalled(.mas)
     }
 
     func installHomebrew() async {
         isInstallingHomebrew = true
         installError = nil
         do {
-            try await deps.installHomebrew()
-            // Poll until the user completes the install in Terminal
-            for _ in 0..<60 {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if await deps.isHomebrewInstalled {
-                    isHomebrewInstalled = true
-                    isInstallingHomebrew = false
-                    return
-                }
+            try await dependencyManager.installHomebrew()
+            if await dependencyManager.waitForHomebrewInstall() {
+                isHomebrewInstalled = true
+                isInstallingHomebrew = false
+                return
             }
             installError = "Homebrew not detected. Complete the install in Terminal, then refresh."
         } catch {
@@ -59,7 +55,7 @@ class UpdateViewModel: ObservableObject {
         isInstallingMas = true
         installError = nil
         do {
-            try await deps.install(.mas)
+            try await dependencyManager.install(.mas)
             isMasInstalled = true
         } catch {
             installError = error.localizedDescription

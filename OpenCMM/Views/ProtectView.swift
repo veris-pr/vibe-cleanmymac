@@ -80,13 +80,7 @@ struct ProtectView: View {
                                 }
                                 .padding(.vertical, 4)
                                 .padding(.horizontal, Theme.Spacing.lg)
-                                .contextMenu {
-                                    Button {
-                                        NSWorkspace.shared.selectFile(threat.path, inFileViewerRootedAtPath: "")
-                                    } label: {
-                                        Label("Reveal in Finder", systemImage: "folder")
-                                    }
-                                }
+                                .revealInFinderContextMenu(path: threat.path)
 
                                 if threat.id != viewModel.threats.last?.id {
                                     Divider().padding(.horizontal, Theme.Spacing.lg)

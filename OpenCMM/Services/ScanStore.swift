@@ -39,8 +39,8 @@ class ScanStore: ObservableObject {
 
     /// Update all summaries at once (called by Overview full scan).
     func updateAll(_ summaries: [ModuleScanSummary], healthScore: Int, scanMode: ScanMode) {
-        for s in summaries {
-            moduleSummaries[s.module] = s
+        for summary in summaries {
+            moduleSummaries[summary.module] = summary
         }
         self.healthScore = healthScore
         self.lastScanMode = scanMode

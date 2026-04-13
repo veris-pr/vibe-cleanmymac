@@ -18,6 +18,7 @@ class AppState: ObservableObject {
     let declutterVM = DeclutterViewModel()
     let spaceLensVM = SpaceLensViewModel()
     let uninstallVM = UninstallViewModel()
+    let settingsVM = SettingsViewModel()
 
     init() {
         self.hasCompletedSetup = UserDefaults.standard.bool(forKey: Self.hasCompletedSetupKey)

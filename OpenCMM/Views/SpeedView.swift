@@ -29,7 +29,7 @@ struct SpeedView: View {
                         .foregroundStyle(Theme.Colors.muted)
                 }
                 Spacer()
-            } else if !viewModel.hostname.isEmpty && viewModel.hostname != "Mac" || !viewModel.loginItems.isEmpty {
+            } else if (!viewModel.hostname.isEmpty && viewModel.hostname != "Mac") || !viewModel.loginItems.isEmpty {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
                         // Startup items
@@ -113,9 +113,6 @@ struct SpeedView: View {
             }
         }
         .background(Theme.Colors.background)
-        .task {
-            viewModel.loadFromStore()
-        }
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {

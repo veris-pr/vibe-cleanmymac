@@ -104,13 +104,7 @@ struct CleanView: View {
                                     }
                                     .padding(.vertical, 2)
                                     .padding(.leading, Theme.Spacing.lg)
-                                    .contextMenu {
-                                        Button {
-                                            NSWorkspace.shared.selectFile(item.path, inFileViewerRootedAtPath: "")
-                                        } label: {
-                                            Label("Reveal in Finder", systemImage: "folder")
-                                        }
-                                    }
+                                    .revealInFinderContextMenu(path: item.path)
                                 }
                             }
                         }
@@ -120,7 +114,7 @@ struct CleanView: View {
 
                 actionBar(
                     label: "\(Formatters.fileSize(viewModel.totalSize)) to clean (\(viewModel.totalItems) items)",
-                    buttonTitle: "Start Scan",
+                    buttonTitle: "Clean Selected",
                     isWorking: viewModel.isCleaning,
                     action: { viewModel.showConfirmation = true }
                 )
@@ -158,7 +152,7 @@ struct CleanView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("\(viewModel.totalItems) item(s) will be permanently removed. This action cannot be undone.")
+            Text("\(viewModel.totalItems) item(s) will be moved to Trash.")
         }
     }
 }

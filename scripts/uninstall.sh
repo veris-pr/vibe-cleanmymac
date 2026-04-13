@@ -28,7 +28,6 @@ except: pass
         [clamav]="clamav"
         [fclones]="fclones"
         [osquery]="--cask osquery"
-        [mactop]="mactop"
         [mas]="mas"
         [czkawka]="czkawka"
         [gdu]="gdu"

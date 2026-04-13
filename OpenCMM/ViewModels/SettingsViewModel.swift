@@ -39,7 +39,7 @@ class SettingsViewModel: ObservableObject {
     @Published var isInstallingHomebrew = false
     @Published var homebrewInstallError: String?
 
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     private let moduleMap: [String: String] = [
         "clamav": "Security",
@@ -52,8 +52,8 @@ class SettingsViewModel: ObservableObject {
 
     func refresh() async {
         isRefreshing = true
-        hasHomebrew = await deps.isHomebrewInstalled
-        let statuses = await deps.allStatuses()
+        hasHomebrew = await dependencyManager.isHomebrewInstalled
+        let statuses = await dependencyManager.allStatuses()
         tools = statuses.map { ToolRow(status: $0, module: moduleMap[$0.info.id] ?? "") }
         isRefreshing = false
     }
@@ -63,16 +63,12 @@ class SettingsViewModel: ObservableObject {
         homebrewInstallError = nil
 
         do {
-            try await deps.installHomebrew()
-            // Poll until the user completes the install in Terminal
-            for _ in 0..<60 {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if await deps.isHomebrewInstalled {
-                    hasHomebrew = true
-                    await refresh()
-                    isInstallingHomebrew = false
-                    return
-                }
+            try await dependencyManager.installHomebrew()
+            if await dependencyManager.waitForHomebrewInstall() {
+                hasHomebrew = true
+                await refresh()
+                isInstallingHomebrew = false
+                return
             }
             homebrewInstallError = "Homebrew not detected. Complete the install in Terminal, then refresh."
         } catch {
@@ -93,8 +89,8 @@ class SettingsViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            try await deps.install(info)
-            let status = await deps.status(for: info)
+            try await dependencyManager.install(info)
+            let status = await dependencyManager.status(for: info)
             tools[idx].isInstalled = true
             tools[idx].version = status.version
             tools[idx].source = status.source
@@ -126,7 +122,7 @@ class SettingsViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            try await deps.uninstall(info)
+            try await dependencyManager.uninstall(info)
             tools[idx].isInstalled = false
             tools[idx].version = nil
             tools[idx].source = .notInstalled

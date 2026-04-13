@@ -2,7 +2,7 @@ import Foundation
 
 /// Integrates mas (Mac App Store CLI) for App Store app management.
 actor MasService {
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     struct AppStoreApp: Identifiable {
         let id: String  // App Store ID
@@ -13,12 +13,12 @@ actor MasService {
     }
 
     var isAvailable: Bool {
-        get async { await deps.isInstalled(.mas) }
+        get async { await dependencyManager.isInstalled(.mas) }
     }
 
     func listInstalled() async -> [AppStoreApp] {
-        guard let mas = await deps.path(for: .mas) else { return [] }
-        guard let output = try? ShellExecutor.shell("\(mas) list 2>/dev/null") else { return [] }
+        guard let mas = await dependencyManager.path(for: .mas) else { return [] }
+        guard let output = try? ShellExecutor.shell("\(ShellExecutor.quote(mas)) list 2>/dev/null") else { return [] }
 
         // Format: "497799835 Xcode (15.4)"
         return output.components(separatedBy: "\n").compactMap { line in
@@ -42,8 +42,8 @@ actor MasService {
     }
 
     func listOutdated() async -> [AppStoreApp] {
-        guard let mas = await deps.path(for: .mas) else { return [] }
-        guard let output = try? ShellExecutor.shell("\(mas) outdated 2>/dev/null") else { return [] }
+        guard let mas = await dependencyManager.path(for: .mas) else { return [] }
+        guard let output = try? ShellExecutor.shell("\(ShellExecutor.quote(mas)) outdated 2>/dev/null") else { return [] }
 
         // Format: "497799835 Xcode (15.4 -> 16.0)"
         return output.components(separatedBy: "\n").compactMap { line in
@@ -71,9 +71,9 @@ actor MasService {
     }
 
     func update(appId: String) async throws {
-        guard let mas = await deps.path(for: .mas) else {
+        guard let mas = await dependencyManager.path(for: .mas) else {
             throw DependencyError.toolNotInstalled("mas")
         }
-        try ShellExecutor.shell("\(mas) upgrade \(appId) 2>/dev/null")
+        try ShellExecutor.shell("\(ShellExecutor.quote(mas)) upgrade \(ShellExecutor.quote(appId)) 2>/dev/null")
     }
 }

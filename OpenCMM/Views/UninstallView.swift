@@ -28,10 +28,10 @@ struct UninstallView: View {
             if viewModel.lastFreedSize > 0 && viewModel.selectedApp == nil {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.Colors.success)
                     Text("Freed \(Formatters.fileSize(viewModel.lastFreedSize))")
                         .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.Colors.success)
                 }
                 .padding()
             }
@@ -229,7 +229,7 @@ struct UninstallView: View {
                     if !viewModel.leftovers.isEmpty {
                         Text("Leftovers: \(Formatters.fileSize(viewModel.totalLeftoverSize))")
                             .font(Theme.Font.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.Colors.warning)
                     }
                 }
             }
@@ -248,7 +248,7 @@ struct UninstallView: View {
                 VStack(spacing: Theme.Spacing.sm) {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 32))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.Colors.success)
                     Text("No leftover files found")
                         .font(Theme.Font.bodyMedium)
                     Text("Only the app bundle (\(Formatters.fileSize(app.size))) will be removed")
@@ -263,10 +263,10 @@ struct UninstallView: View {
             if viewModel.errorMessage != nil {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warning)
                     Text(viewModel.errorMessage ?? "")
                         .font(Theme.Font.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warning)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.vertical, Theme.Spacing.xs)

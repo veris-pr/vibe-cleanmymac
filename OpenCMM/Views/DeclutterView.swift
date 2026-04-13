@@ -161,13 +161,7 @@ struct DeclutterView: View {
                                         .font(Theme.Font.monoSmall)
                                         .foregroundStyle(Theme.Colors.secondary)
                                 }
-                                .contextMenu {
-                                    Button {
-                                        NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
-                                    } label: {
-                                        Label("Reveal in Finder", systemImage: "folder")
-                                    }
-                                }
+                                .revealInFinderContextMenu(path: file.path)
                             }
                         } header: {
                             SectionHeaderRow(
@@ -252,13 +246,7 @@ struct DeclutterView: View {
                                         .font(Theme.Font.monoSmall)
                                         .foregroundStyle(Theme.Colors.secondary)
                                 }
-                                .contextMenu {
-                                    Button {
-                                        NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
-                                    } label: {
-                                        Label("Reveal in Finder", systemImage: "folder")
-                                    }
-                                }
+                                .revealInFinderContextMenu(path: file.path)
                             }
                         } header: {
                             SectionHeaderRow(
@@ -344,13 +332,7 @@ struct DeclutterView: View {
                                 .font(Theme.Font.mono)
                                 .foregroundStyle(Theme.Colors.foreground)
                         }
-                        .contextMenu {
-                            Button {
-                                NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
-                            } label: {
-                                Label("Reveal in Finder", systemImage: "folder")
-                            }
-                        }
+                        .revealInFinderContextMenu(path: file.path)
                     }
                 }
                 .listStyle(.inset)
@@ -409,13 +391,7 @@ struct DeclutterView: View {
                                 .font(Theme.Font.monoSmall)
                                 .foregroundStyle(Theme.Colors.secondary)
                         }
-                        .contextMenu {
-                            Button {
-                                NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
-                            } label: {
-                                Label("Reveal in Finder", systemImage: "folder")
-                            }
-                        }
+                        .revealInFinderContextMenu(path: file.path)
                     }
                 }
                 .listStyle(.inset)

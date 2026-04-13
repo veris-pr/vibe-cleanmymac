@@ -6,10 +6,10 @@ private let logger = Logger(subsystem: "com.opencmm.app", category: "DuplicateFi
 
 actor DuplicateFinderService {
     private let home = FileUtils.homeDirectory()
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var isFclonesAvailable: Bool {
-        get async { await deps.isInstalled(.fclones) }
+        get async { await dependencyManager.isInstalled(.fclones) }
     }
 
     func findDuplicates(in paths: [String]? = nil, quickScan: Bool = false) async -> [DuplicateGroup] {
@@ -20,7 +20,7 @@ actor DuplicateFinderService {
         ]
 
         // Use fclones if available (much faster and more accurate)
-        if !quickScan, let fclones = await deps.path(for: .fclones) {
+        if !quickScan, let fclones = await dependencyManager.path(for: .fclones) {
             return await findDuplicatesWithFclones(fclones, paths: searchPaths)
         }
 
@@ -67,10 +67,10 @@ actor DuplicateFinderService {
         let existingPaths = paths.filter { FileUtils.exists($0) }
         guard !existingPaths.isEmpty else { return [] }
 
-        let pathArgs = existingPaths.map { "\"\($0)\"" }.joined(separator: " ")
+        let pathArgs = existingPaths.map { ShellExecutor.quote($0) }.joined(separator: " ")
 
         guard let output = try? ShellExecutor.shell(
-            "\(fclones) group \(pathArgs) --format json 2>/dev/null"
+            "\(ShellExecutor.quote(fclones)) group \(pathArgs) --format json 2>/dev/null"
         ), !output.isEmpty else {
             // Fall back to native if fclones fails
             return await findDuplicatesNative(paths: paths)

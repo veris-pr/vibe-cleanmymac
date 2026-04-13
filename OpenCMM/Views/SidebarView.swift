@@ -38,8 +38,8 @@ struct SidebarView: View {
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.muted.opacity(0.6))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.md)
         }
     }
 

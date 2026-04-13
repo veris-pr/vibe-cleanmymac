@@ -23,7 +23,7 @@ class DeclutterViewModel: ObservableObject {
 
     private let service = DuplicateFinderService()
     private let czkawkaService = CzkawkaService()
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var totalWastedSpace: Int64 {
         duplicateGroups.reduce(0) { $0 + $1.wastedSpace }
@@ -56,15 +56,15 @@ class DeclutterViewModel: ObservableObject {
     }
 
     func checkDependencies() async {
-        isFclonesInstalled = await deps.isInstalled(.fclones)
-        isCzkawkaInstalled = await deps.isInstalled(.czkawka)
+        isFclonesInstalled = await dependencyManager.isInstalled(.fclones)
+        isCzkawkaInstalled = await dependencyManager.isInstalled(.czkawka)
     }
 
     func installFclones() async {
         isInstallingFclones = true
         installError = nil
         do {
-            try await deps.install(.fclones)
+            try await dependencyManager.install(.fclones)
             isFclonesInstalled = true
         } catch {
             installError = error.localizedDescription
@@ -76,7 +76,7 @@ class DeclutterViewModel: ObservableObject {
         isInstallingCzkawka = true
         installError = nil
         do {
-            try await deps.install(.czkawka)
+            try await dependencyManager.install(.czkawka)
             isCzkawkaInstalled = true
         } catch {
             installError = error.localizedDescription
@@ -115,10 +115,8 @@ class DeclutterViewModel: ObservableObject {
     func removeDuplicates() async {
         isRemoving = true
         errorMessage = nil
-        do {
-            _ = await service.removeDuplicates(duplicateGroups)
-            duplicateGroups.removeAll()
-        }
+        _ = await service.removeDuplicates(duplicateGroups)
+        duplicateGroups.removeAll()
         isRemoving = false
         scanStore?.invalidate(.declutter)
     }

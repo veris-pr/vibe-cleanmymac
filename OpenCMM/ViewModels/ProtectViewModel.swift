@@ -18,7 +18,7 @@ class ProtectViewModel: ObservableObject {
 
     private let service = MalwareScanService()
     private let osqueryService = OsqueryService()
-    private let deps = DependencyManager.shared
+    private let dependencyManager = DependencyManager.shared
 
     var threatCount: Int { threats.count }
     var criticalCount: Int { threats.filter { $0.severity == .critical }.count }
@@ -48,15 +48,15 @@ class ProtectViewModel: ObservableObject {
     }
 
     func checkDependencies() async {
-        isClamAVInstalled = await deps.isInstalled(.clamav)
-        isOsqueryInstalled = await deps.isInstalled(.osquery)
+        isClamAVInstalled = await dependencyManager.isInstalled(.clamav)
+        isOsqueryInstalled = await dependencyManager.isInstalled(.osquery)
     }
 
     func installClamAV() async {
         isInstallingClamAV = true
         installError = nil
         do {
-            try await deps.install(.clamav)
+            try await dependencyManager.install(.clamav)
             isClamAVInstalled = true
         } catch {
             installError = error.localizedDescription
@@ -87,13 +87,11 @@ class ProtectViewModel: ObservableObject {
         isRemoving = true
         errorMessage = nil
         let selected = threats.filter(\.isSelected)
-        do {
-            let removed = await service.remove(threats: selected)
-            if removed < selected.count {
-                errorMessage = "Some threats could not be removed."
-            }
-            threats.removeAll { $0.isSelected }
+        let removed = await service.remove(threats: selected)
+        if removed < selected.count {
+            errorMessage = "Some threats could not be removed."
         }
+        threats.removeAll { $0.isSelected }
         isRemoving = false
         scanStore?.invalidate(.protect)
     }
