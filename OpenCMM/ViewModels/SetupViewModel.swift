@@ -23,6 +23,8 @@ class SetupViewModel: ObservableObject {
     @Published var installProgress: Double = 0
     @Published var installStatus = ""
     @Published var errorMessage: String?
+    @Published var isInstallingHomebrew = false
+    @Published var homebrewInstallError: String?
 
     private let deps = DependencyManager.shared
 
@@ -61,6 +63,21 @@ class SetupViewModel: ObservableObject {
         guard let idx = tools.firstIndex(where: { $0.id == id }) else { return }
         guard !tools[idx].isInstalled else { return }
         tools[idx].isSelected.toggle()
+    }
+
+    func installHomebrew() async {
+        isInstallingHomebrew = true
+        homebrewInstallError = nil
+
+        do {
+            try await deps.installHomebrew()
+            hasHomebrew = true
+            await checkStatus()
+        } catch {
+            homebrewInstallError = error.localizedDescription
+        }
+
+        isInstallingHomebrew = false
     }
 
     func installSelected(completion: @escaping () -> Void) async {

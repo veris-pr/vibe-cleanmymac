@@ -116,25 +116,55 @@ struct SetupView: View {
     // MARK: - Subviews
 
     private var homebrewBanner: some View {
-        HStack(spacing: Theme.Spacing.md) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.Colors.warning)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Homebrew not found")
-                    .font(Theme.Font.bodyMedium)
-                    .foregroundStyle(Theme.Colors.foreground)
-                Text("Install Homebrew first to enable tool installation: brew.sh")
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.Colors.warning)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Homebrew not found")
+                        .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(Theme.Colors.foreground)
+                    Text("Homebrew is required to install tools. Click below to install it automatically — you'll be prompted for your password.")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
+                Spacer()
+                if viewModel.isInstallingHomebrew {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Installing...")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                    }
+                } else {
+                    Button(action: {
+                        Task { await viewModel.installHomebrew() }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.down.circle")
+                                .font(.system(size: 11))
+                            Text("Install Homebrew")
+                        }
+                    }
                     .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
-            Spacer()
-            Button("Open brew.sh") {
-                NSWorkspace.shared.open(URL(string: "https://brew.sh")!)
+
+            if let error = viewModel.homebrewInstallError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.destructive)
+                    Text(error)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.destructive)
+                        .lineLimit(3)
+                }
             }
-            .font(Theme.Font.caption)
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .padding(Theme.Spacing.md)
         .background(Theme.Colors.warning.opacity(0.08))

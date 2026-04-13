@@ -148,6 +148,44 @@ actor DependencyManager {
         findExecutable("brew") != nil
     }
 
+    // MARK: - Homebrew Installation
+
+    #if arch(arm64)
+    private static let brewPrefix = "/opt/homebrew"
+    #else
+    private static let brewPrefix = "/usr/local/Homebrew"
+    #endif
+
+    /// Install Homebrew itself via tarball extraction.
+    /// Uses a single macOS admin password prompt to create the prefix directory,
+    /// then downloads and extracts as the current user (no Terminal needed).
+    func installHomebrew() async throws {
+        guard !isHomebrewInstalled else { return }
+
+        let prefix = Self.brewPrefix
+        let user = NSUserName()
+
+        // Create prefix directory with admin privileges (triggers native macOS password dialog)
+        try ShellExecutor.shellWithAdmin(
+            "mkdir -p '\(prefix)' && chown -R \(user):admin '\(prefix)'"
+        )
+
+        // Download and extract Homebrew (no admin needed — user owns directory)
+        try ShellExecutor.shell(
+            "curl -fsSL -o /tmp/brew-install.tar.gz https://github.com/Homebrew/brew/tarball/master && tar xzf /tmp/brew-install.tar.gz --strip-components 1 -C '\(prefix)' && rm -f /tmp/brew-install.tar.gz"
+        )
+
+        #if arch(x86_64)
+        // Intel: create symlink so brew is on standard PATH
+        try ShellExecutor.shellWithAdmin(
+            "ln -sf '\(prefix)/bin/brew' '/usr/local/bin/brew'"
+        )
+        #endif
+
+        // Initialize Homebrew
+        try ShellExecutor.shell("'\(prefix)/bin/brew' update --force --quiet")
+    }
+
     // MARK: - Installation via Homebrew
 
     func install(_ tool: ToolInfo) async throws {

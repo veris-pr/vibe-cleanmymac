@@ -36,15 +36,54 @@ struct SettingsView: View {
                             .foregroundStyle(Theme.Colors.muted)
 
                         if !viewModel.hasHomebrew {
-                            HStack(spacing: Theme.Spacing.sm) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .foregroundStyle(Theme.Colors.warning)
-                                Text("Homebrew is required to install tools.")
-                                    .font(Theme.Font.body)
-                                    .foregroundStyle(Theme.Colors.muted)
-                                Spacer()
-                                Link("brew.sh", destination: URL(string: "https://brew.sh")!)
-                                    .font(Theme.Font.bodyMedium)
+                            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                                HStack(spacing: Theme.Spacing.sm) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundStyle(Theme.Colors.warning)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Homebrew is required to install tools.")
+                                            .font(Theme.Font.body)
+                                            .foregroundStyle(Theme.Colors.foreground)
+                                        Text("Click below to install it automatically — you'll be prompted for your password.")
+                                            .font(Theme.Font.caption)
+                                            .foregroundStyle(Theme.Colors.muted)
+                                    }
+                                    Spacer()
+                                    if viewModel.isInstallingHomebrew {
+                                        HStack(spacing: 6) {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                            Text("Installing...")
+                                                .font(Theme.Font.caption)
+                                                .foregroundStyle(Theme.Colors.muted)
+                                        }
+                                    } else {
+                                        Button(action: {
+                                            Task { await viewModel.installHomebrew() }
+                                        }) {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "arrow.down.circle")
+                                                    .font(.system(size: 11))
+                                                Text("Install Homebrew")
+                                            }
+                                        }
+                                        .font(Theme.Font.bodyMedium)
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                }
+
+                                if let error = viewModel.homebrewInstallError {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Theme.Colors.destructive)
+                                        Text(error)
+                                            .font(Theme.Font.caption)
+                                            .foregroundStyle(Theme.Colors.destructive)
+                                            .lineLimit(3)
+                                    }
+                                }
                             }
                             .padding(Theme.Spacing.md)
                             .background(Theme.Colors.warning.opacity(0.06))

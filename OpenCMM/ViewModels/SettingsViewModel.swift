@@ -35,6 +35,8 @@ class SettingsViewModel: ObservableObject {
     @Published var tools: [ToolRow] = []
     @Published var hasHomebrew = false
     @Published var errorMessage: String?
+    @Published var isInstallingHomebrew = false
+    @Published var homebrewInstallError: String?
 
     private let deps = DependencyManager.shared
 
@@ -53,6 +55,21 @@ class SettingsViewModel: ObservableObject {
         hasHomebrew = await deps.isHomebrewInstalled
         let statuses = await deps.allStatuses()
         tools = statuses.map { ToolRow(status: $0, module: moduleMap[$0.info.id] ?? "") }
+    }
+
+    func installHomebrew() async {
+        isInstallingHomebrew = true
+        homebrewInstallError = nil
+
+        do {
+            try await deps.installHomebrew()
+            hasHomebrew = true
+            await refresh()
+        } catch {
+            homebrewInstallError = error.localizedDescription
+        }
+
+        isInstallingHomebrew = false
     }
 
     func install(_ id: String) async {
