@@ -42,7 +42,9 @@ class SmartCareViewModel: ObservableObject {
     private func scan() async {
         isScanning = true
         progress = 0
-        currentStep = "Starting scan..."
+
+        let stepNames = ["Sweep", "Security", "Boost", "Updates", "Duplicates"]
+        currentStep = "Scanning all modules..."
 
         var collectedSummaries: [ModuleScanSummary] = []
         var outputs: [ScanOutput] = []
@@ -87,16 +89,25 @@ class SmartCareViewModel: ObservableObject {
             }
 
             var completed = 0
+            var finishedIndices = Set<Int>()
             var indexed: [(Int, ScanOutput)] = []
 
             for await result in group {
                 guard !Task.isCancelled else { return }
                 completed += 1
                 indexed.append(result)
-
-                let stepNames = ["Sweep", "Security", "Boost", "Updates", "Duplicates"]
-                currentStep = "Completed \(stepNames[result.0])"
+                finishedIndices.insert(result.0)
                 progress = Double(completed) / 5.0
+
+                // Show what's still running
+                let remaining = stepNames.enumerated()
+                    .filter { !finishedIndices.contains($0.offset) }
+                    .map { $0.element }
+                if remaining.isEmpty {
+                    currentStep = "Finishing up..."
+                } else {
+                    currentStep = "Scanning \(remaining.joined(separator: ", "))..."
+                }
             }
 
             let sorted = indexed.sorted { $0.0 < $1.0 }
