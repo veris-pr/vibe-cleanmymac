@@ -85,45 +85,42 @@ struct SpeedView: View {
                             .padding(.horizontal, Theme.Spacing.lg)
                         }
 
-                        // Quick actions
-                        HStack(spacing: Theme.Spacing.sm) {
-                            Button(action: { Task { await viewModel.purgeMemory() } }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "memorychip")
-                                        .font(.system(size: 11))
+                        // Quick actions grouped under Memory
+                        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                            Text("Memory")
+                                .font(Theme.Font.heading)
+                                .foregroundStyle(Theme.Colors.foreground)
+
+                            HStack(spacing: Theme.Spacing.sm) {
+                                Button(action: { Task { await viewModel.purgeMemory() } }) {
                                     Text(viewModel.isPurging ? "Freeing..." : "Free Up RAM")
                                         .font(Theme.Font.bodyMedium)
                                 }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.regular)
-                            .disabled(viewModel.isPurging)
+                                .buttonStyle(.bordered)
+                                .controlSize(.regular)
+                                .disabled(viewModel.isPurging)
 
-                            Button(action: { Task { await viewModel.refresh() } }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 11))
+                                Button(action: { Task { await viewModel.refresh() } }) {
                                     Text("Refresh")
                                         .font(Theme.Font.bodyMedium)
                                 }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.regular)
+                                .buttonStyle(.bordered)
+                                .controlSize(.regular)
 
-                            Toggle(isOn: Binding(
-                                get: { viewModel.isAutoRefresh },
-                                set: { _ in viewModel.toggleAutoRefresh() }
-                            )) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "timer")
-                                        .font(.system(size: 11))
+                                Spacer()
+
+                                Toggle(isOn: Binding(
+                                    get: { viewModel.isAutoRefresh },
+                                    set: { _ in viewModel.toggleAutoRefresh() }
+                                )) {
                                     Text("Auto-refresh")
                                         .font(Theme.Font.bodyMedium)
                                 }
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
                             }
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
                         }
+                        .cardStyle()
                         .padding(.horizontal, Theme.Spacing.lg)
 
                         // Startup items
@@ -173,6 +170,7 @@ struct SpeedView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .cardStyle()
                         .padding(.horizontal, Theme.Spacing.lg)
 
