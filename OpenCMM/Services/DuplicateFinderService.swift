@@ -9,7 +9,7 @@ actor DuplicateFinderService {
         get async { await deps.isInstalled(.fclones) }
     }
 
-    func findDuplicates(in paths: [String]? = nil) async -> [DuplicateGroup] {
+    func findDuplicates(in paths: [String]? = nil, quickScan: Bool = false) async -> [DuplicateGroup] {
         let searchPaths = paths ?? [
             "\(home)/Documents",
             "\(home)/Downloads",
@@ -17,12 +17,12 @@ actor DuplicateFinderService {
         ]
 
         // Use fclones if available (much faster and more accurate)
-        if let fclones = await deps.path(for: .fclones) {
+        if !quickScan, let fclones = await deps.path(for: .fclones) {
             return await findDuplicatesWithFclones(fclones, paths: searchPaths)
         }
 
-        // Fallback to native Swift implementation
-        return await findDuplicatesNative(paths: searchPaths)
+        // Native implementation (quick mode uses partial hash)
+        return await findDuplicatesNative(paths: searchPaths, quickScan: quickScan)
     }
 
     func findLargeFiles(minSize: Int64 = 100_000_000) async -> [LargeFile] {
@@ -148,20 +148,21 @@ actor DuplicateFinderService {
 
     // MARK: - Native Swift Fallback
 
-    private func findDuplicatesNative(paths: [String]) async -> [DuplicateGroup] {
+    private func findDuplicatesNative(paths: [String], quickScan: Bool = false) async -> [DuplicateGroup] {
         var sizeMap: [Int64: [String]] = [:]
 
-        // Phase 1: Group by file size
+        // Phase 1: Group by file size (skip tiny files in quick mode)
+        let minFileSize: Int64 = quickScan ? 4096 : 1024
         for basePath in paths {
             guard FileUtils.exists(basePath) else { continue }
-            collectFiles(at: basePath, into: &sizeMap)
+            collectFiles(at: basePath, minSize: minFileSize, into: &sizeMap)
         }
 
-        // Phase 2: Full hash files with matching sizes
+        // Phase 2: Hash files with matching sizes
         var hashMap: [String: [DuplicateFile]] = [:]
         for (size, filePaths) in sizeMap where filePaths.count > 1 {
             for path in filePaths {
-                guard let hash = hashFile(at: path) else { continue }
+                guard let hash = quickScan ? hashFilePartial(at: path) : hashFile(at: path) else { continue }
                 let name = URL(fileURLWithPath: path).lastPathComponent
                 let modDate = FileUtils.modificationDate(at: path) ?? Date.distantPast
                 let file = DuplicateFile(path: path, name: name, size: size, modifiedDate: modDate)
@@ -180,7 +181,7 @@ actor DuplicateFinderService {
         }.sorted { $0.wastedSpace > $1.wastedSpace }
     }
 
-    private func collectFiles(at path: String, into sizeMap: inout [Int64: [String]]) {
+    private func collectFiles(at path: String, minSize: Int64 = 1024, into sizeMap: inout [Int64: [String]]) {
         guard let enumerator = FileManager.default.enumerator(
             at: URL(fileURLWithPath: path),
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
@@ -191,7 +192,7 @@ actor DuplicateFinderService {
             guard let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
                   values.isRegularFile == true,
                   let fileSize = values.fileSize,
-                  fileSize > 1024 else { continue }
+                  Int64(fileSize) >= minSize else { continue }
             sizeMap[Int64(fileSize), default: []].append(fileURL.path)
         }
     }
@@ -207,6 +208,16 @@ actor DuplicateFinderService {
             hasher.update(data: chunk)
         }
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Hash only the first 4KB — fast approximation for quick scans.
+    private func hashFilePartial(at path: String) -> String? {
+        guard let fileHandle = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { fileHandle.closeFile() }
+
+        let chunk = fileHandle.readData(ofLength: 4096)
+        guard !chunk.isEmpty else { return nil }
+        return SHA256.hash(data: chunk).map { String(format: "%02x", $0) }.joined()
     }
 
     private func findLargeFilesRecursive(at path: String, minSize: Int64, into results: inout [LargeFile]) {

@@ -69,7 +69,7 @@ class SmartCareViewModel: ObservableObject {
             }
 
             group.addTask { [duplicateService] in
-                let groups = await duplicateService.findDuplicates()
+                let groups = await duplicateService.findDuplicates(quickScan: true)
                 let wastedSpace = groups.reduce(0) { $0 + $1.wastedSpace }
                 let issues = groups.prefix(3).map { "\($0.files.count) copies · \(Formatters.fileSize($0.wastedSpace))" }
                 return (4, ModuleScanSummary(module: .declutter, itemCount: groups.count, totalSize: wastedSpace, issues: Array(issues), timestamp: Date()))
