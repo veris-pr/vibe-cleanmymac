@@ -116,10 +116,24 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.Colors.foreground)
                     Text(tool.module)
                         .badgeStyle()
+                    if tool.managedByUs {
+                        Text("managed")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Theme.Colors.muted)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Theme.Colors.muted.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
                 }
-                Text(tool.description)
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.muted)
+                HStack(spacing: 4) {
+                    Text(tool.description)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                    Text("· tested v\(tool.testedVersion)")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted.opacity(0.6))
+                }
             }
 
             Spacer()
@@ -132,13 +146,28 @@ struct SettingsView: View {
                         .lineLimit(1)
                         .frame(maxWidth: 140, alignment: .trailing)
                 }
-                Text("Installed")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.success)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Theme.Colors.success.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+
+                if tool.managedByUs {
+                    if tool.isUninstalling {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Button("Uninstall") {
+                            Task { await viewModel.uninstall(tool.id) }
+                        }
+                        .font(Theme.Font.caption)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                } else {
+                    Text("External")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.Colors.muted.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                }
             } else {
                 if tool.isInstalling {
                     ProgressView()

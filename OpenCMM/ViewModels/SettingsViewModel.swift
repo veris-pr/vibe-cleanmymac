@@ -7,17 +7,22 @@ class SettingsViewModel: ObservableObject {
         let name: String
         let description: String
         let module: String
+        let testedVersion: String
         var isInstalled: Bool
         var version: String?
+        var managedByUs: Bool
         var isInstalling: Bool = false
+        var isUninstalling: Bool = false
 
         init(status: DependencyManager.ToolStatus, module: String) {
             self.id = status.info.id
             self.name = status.info.name
             self.description = status.info.description
             self.module = module
+            self.testedVersion = status.info.testedVersion
             self.isInstalled = status.isInstalled
             self.version = status.version
+            self.managedByUs = status.managedByUs
         }
     }
 
@@ -57,9 +62,29 @@ class SettingsViewModel: ObservableObject {
             let status = await deps.status(for: info)
             tools[idx].isInstalled = true
             tools[idx].version = status.version
+            tools[idx].managedByUs = true
         } catch {
             errorMessage = "\(info.name): \(error.localizedDescription)"
         }
         tools[idx].isInstalling = false
+    }
+
+    func uninstall(_ id: String) async {
+        guard let idx = tools.firstIndex(where: { $0.id == id }) else { return }
+        let info = DependencyManager.ToolInfo.all.first { $0.id == id }
+        guard let info else { return }
+
+        tools[idx].isUninstalling = true
+        errorMessage = nil
+
+        do {
+            try await deps.uninstall(info)
+            tools[idx].isInstalled = false
+            tools[idx].version = nil
+            tools[idx].managedByUs = false
+        } catch {
+            errorMessage = "\(info.name): \(error.localizedDescription)"
+        }
+        tools[idx].isUninstalling = false
     }
 }
