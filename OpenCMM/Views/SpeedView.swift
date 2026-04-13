@@ -74,6 +74,11 @@ struct SpeedView: View {
             }
         }
         .background(Theme.Colors.background)
+        .task {
+            if viewModel.hostname == "Mac" && viewModel.loginItems.isEmpty {
+                await viewModel.loadData()
+            }
+        }
     }
 
     // MARK: - Metrics Card
