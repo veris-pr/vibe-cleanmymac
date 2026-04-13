@@ -90,6 +90,7 @@ actor DependencyManager {
         case "clamav": return "clamscan"
         case "osquery": return "osqueryi"
         case "czkawka": return "czkawka_cli"
+        case "gdu": return "gdu-go"
         default: return tool.id
         }
     }
