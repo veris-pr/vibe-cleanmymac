@@ -447,6 +447,7 @@ struct UninstallView: View {
         case .containers: return "shippingbox"
         case .crashReports: return "exclamationmark.triangle"
         case .savedState: return "bookmark"
+        case .launchItems: return "gearshape.2"
         case .other: return "ellipsis.circle"
         }
     }

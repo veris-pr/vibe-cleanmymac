@@ -42,6 +42,7 @@ struct AppLeftover: Identifiable {
         case containers = "Containers"
         case crashReports = "Crash Reports"
         case savedState = "Saved State"
+        case launchItems = "Launch Items"
         case other = "Other"
     }
 }

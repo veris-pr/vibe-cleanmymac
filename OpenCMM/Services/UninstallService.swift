@@ -61,6 +61,15 @@ actor UninstallService {
             }
         }
 
+        // ByHost preferences (machine-specific prefs like com.app.id.XXXX.plist)
+        let byHostDir = "\(home)/Library/Preferences/ByHost"
+        for file in FileUtils.contentsOfDirectory(byHostDir) {
+            if searchTerms.contains(where: { file.localizedCaseInsensitiveContains($0) }) {
+                let path = "\(byHostDir)/\(file)"
+                leftovers.append(AppLeftover(path: path, category: .preferences, size: FileUtils.fileSize(at: path)))
+            }
+        }
+
         // Logs
         leftovers += scanDirectory(
             "\(home)/Library/Logs",
@@ -78,7 +87,7 @@ actor UninstallService {
         // Group Containers
         leftovers += scanGroupContainers(bundleId: bundleId)
 
-        // Crash Reports
+        // Crash Reports (user-level)
         leftovers += scanDirectory(
             "\(home)/Library/Logs/DiagnosticReports",
             matching: searchTerms,
@@ -108,8 +117,25 @@ actor UninstallService {
             category: .other
         )
 
+        // Launch Agents (user-level)
+        let launchAgentsDir = "\(home)/Library/LaunchAgents"
+        for file in FileUtils.contentsOfDirectory(launchAgentsDir) {
+            if file.localizedCaseInsensitiveContains(bundleId) ||
+                searchTerms.contains(where: { file.localizedCaseInsensitiveContains($0) }) {
+                let path = "\(launchAgentsDir)/\(file)"
+                leftovers.append(AppLeftover(path: path, category: .launchItems, size: FileUtils.fileSize(at: path)))
+            }
+        }
+
         logger.info("Found \(leftovers.count) leftovers for \(app.name)")
         return leftovers.filter { $0.size > 0 }
+    }
+
+    // MARK: - Running App Detection
+
+    /// Check if an app is currently running by its bundle identifier.
+    func isAppRunning(_ app: InstalledApp) -> Bool {
+        NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier).first != nil
     }
 
     // MARK: - Uninstall
@@ -117,8 +143,18 @@ actor UninstallService {
     func uninstall(app: InstalledApp, leftovers: [AppLeftover]) async -> (removedApp: Bool, removedLeftovers: Int, freedBytes: Int64) {
         var removedLeftovers = 0
         var freedBytes: Int64 = 0
+        let bundleId = app.bundleIdentifier
 
-        // Remove leftover files first
+        // 1. Quit the app if running
+        await quitApp(bundleId: bundleId)
+
+        // 2. Unload Launch Agents for this app
+        await unloadLaunchAgents(bundleId: bundleId)
+
+        // 3. Deregister from LaunchServices (clears Spotlight/Open With)
+        await deregisterFromLaunchServices(appPath: app.path)
+
+        // 4. Remove leftover files
         for leftover in leftovers {
             do {
                 try FileUtils.moveToTrash(leftover.path)
@@ -130,7 +166,7 @@ actor UninstallService {
             }
         }
 
-        // Remove the app itself
+        // 5. Remove the app itself
         var removedApp = false
         do {
             try FileUtils.moveToTrash(app.path)
@@ -141,7 +177,66 @@ actor UninstallService {
             logger.error("Failed to remove app \(app.path): \(error.localizedDescription)")
         }
 
+        // 6. Post-removal cleanup (only if app was removed)
+        if removedApp {
+            await deleteDefaultsDomain(bundleId: bundleId)
+            await removeFromDock(appPath: app.path)
+        }
+
         return (removedApp, removedLeftovers, freedBytes)
+    }
+
+    // MARK: - Pre/Post Uninstall Helpers
+
+    /// Gracefully quit a running app via its bundle identifier.
+    private func quitApp(bundleId: String) async {
+        await MainActor.run {
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleId) {
+                app.terminate()
+            }
+        }
+        // Brief wait for process to exit
+        try? await Task.sleep(nanoseconds: 500_000_000)
+    }
+
+    /// Unload user-level Launch Agents matching the bundle identifier.
+    private func unloadLaunchAgents(bundleId: String) async {
+        let launchAgentsDir = "\(home)/Library/LaunchAgents"
+        for file in FileUtils.contentsOfDirectory(launchAgentsDir) {
+            if file.localizedCaseInsensitiveContains(bundleId) {
+                let plistPath = "\(launchAgentsDir)/\(file)"
+                _ = try? await ShellExecutor.shellAsync("launchctl unload \(ShellExecutor.quote(plistPath))")
+            }
+        }
+    }
+
+    /// Deregister the app bundle from LaunchServices to clear stale Spotlight and Open With entries.
+    private func deregisterFromLaunchServices(appPath: String) async {
+        let lsregisterPaths = [
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister",
+            "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+        ]
+        for path in lsregisterPaths {
+            if FileUtils.exists(path) {
+                _ = try? await ShellExecutor.shellAsync("\(ShellExecutor.quote(path)) -u \(ShellExecutor.quote(appPath))")
+                return
+            }
+        }
+    }
+
+    /// Delete the defaults domain for a bundle ID (removes preferences from defaults system).
+    private func deleteDefaultsDomain(bundleId: String) async {
+        // Validate bundle ID format to prevent injection
+        let validBundleId = bundleId.allSatisfy { $0.isLetter || $0.isNumber || $0 == "." || $0 == "-" || $0 == "_" }
+        guard validBundleId, !bundleId.isEmpty else { return }
+
+        _ = try? await ShellExecutor.shellAsync("defaults delete \(ShellExecutor.quote(bundleId))")
+    }
+
+    /// Remove uninstalled app from the macOS Dock.
+    private func removeFromDock(appPath: String) async {
+        // Restart the Dock process — it automatically removes entries for apps that no longer exist
+        _ = try? await ShellExecutor.shellAsync("killall Dock 2>/dev/null; true")
     }
 
     // MARK: - Private Helpers
@@ -287,5 +382,10 @@ actor UninstallService {
 
     func uninstallBrewPackage(_ pkg: BrewPackage) async throws {
         try await ShellExecutor.shellAsync("brew uninstall \(ShellExecutor.quote(pkg.name))")
+    }
+
+    /// Remove orphaned Homebrew dependencies no longer needed by any installed formula.
+    func brewAutoremove() async {
+        _ = try? await ShellExecutor.shellAsync("HOMEBREW_NO_AUTO_UPDATE=1 brew autoremove")
     }
 }

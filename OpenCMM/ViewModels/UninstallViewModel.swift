@@ -176,6 +176,11 @@ class UninstallViewModel: ObservableObject {
             }
         }
 
+        // Clean up orphaned dependencies
+        if removed > 0 {
+            await service.brewAutoremove()
+        }
+
         selectedBrewIds.removeAll()
         applyBrewFilter()
         isUninstalling = false
