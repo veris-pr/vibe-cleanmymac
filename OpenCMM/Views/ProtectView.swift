@@ -88,7 +88,7 @@ struct ProtectView: View {
                 )
             } else {
                 footerBar {
-                    ScanButton(title: viewModel.scanComplete ? "Rescan" : "Start Scan") {
+                    ScanButton(title: viewModel.scanComplete ? "Rescan" : "Scan") {
                         viewModel.startScan()
                     }
                 }

@@ -91,7 +91,7 @@ struct UpdateView: View {
                 )
             } else {
                 footerBar {
-                    ScanButton(title: viewModel.checkComplete ? "Rescan" : "Start Scan") {
+                    ScanButton(title: viewModel.checkComplete ? "Rescan" : "Scan") {
                         viewModel.startCheckForUpdates()
                     }
                 }

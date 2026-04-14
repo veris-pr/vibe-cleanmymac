@@ -115,7 +115,7 @@ struct SpaceLensView: View {
                 }
             } else {
                 footerBar {
-                    ScanButton(title: "Start Scan") { viewModel.startScan() }
+                    ScanButton(title: "Scan") { viewModel.startScan() }
                 }
             }
         }

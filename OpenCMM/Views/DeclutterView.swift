@@ -94,7 +94,7 @@ struct DeclutterView: View {
                 currentTabFooter
             } else {
                 footerBar {
-                    ScanButton(title: "Start Scan") { viewModel.startScan() }
+                    ScanButton(title: "Scan") { viewModel.startScan() }
                 }
             }
         }

@@ -78,7 +78,7 @@ struct CleanView: View {
                 )
             } else {
                 footerBar {
-                    ScanButton(title: viewModel.lastCleanedSize > 0 ? "Rescan" : "Start Scan") {
+                    ScanButton(title: viewModel.lastCleanedSize > 0 ? "Rescan" : "Scan") {
                         viewModel.startScan()
                     }
                 }

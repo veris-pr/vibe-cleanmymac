@@ -43,7 +43,7 @@ struct SmartCareView: View {
                     if scanStore.hasScanResults {
                         ghostButton("Rescan") { viewModel.startScan() }
                     } else {
-                        ScanButton(title: "Start Scan") { viewModel.startScan() }
+                        ScanButton(title: "Scan") { viewModel.startScan() }
                     }
                 }
             }
