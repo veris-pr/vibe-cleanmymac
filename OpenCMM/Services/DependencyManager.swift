@@ -28,8 +28,9 @@ actor DependencyManager {
         static let mas = ToolInfo(id: "mas", name: "mas", description: "Mac App Store CLI", brewPackage: "mas", isCask: false, testedVersion: "6.0.1")
         static let czkawka = ToolInfo(id: "czkawka", name: "czkawka", description: "Similar images, videos & music finder", brewPackage: "czkawka", isCask: false, testedVersion: "11.0.1")
         static let macmon = ToolInfo(id: "macmon", name: "macmon", description: "Sudoless Apple Silicon performance monitor", brewPackage: "macmon", isCask: false, testedVersion: "0.7.0")
+        static let mole = ToolInfo(id: "mole", name: "Mole", description: "System optimizer — clean, optimize, and analyze", brewPackage: "mole", isCask: false, testedVersion: "1.34.0")
 
-        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mas, .czkawka, .macmon]
+        static let all: [ToolInfo] = [.clamav, .fclones, .osquery, .mas, .czkawka, .macmon, .mole]
     }
 
     enum InstallSource: String {
@@ -88,6 +89,7 @@ actor DependencyManager {
         case "clamav": return "clamscan"
         case "osquery": return "osqueryi"
         case "czkawka": return "czkawka_cli"
+        case "mole": return "mo"
         default: return tool.id
         }
     }

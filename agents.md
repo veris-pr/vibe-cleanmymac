@@ -78,7 +78,7 @@ Each returns a `ScanOutput` enum. Progress updates as each completes. Results ar
 | `.smartCare` | Overview | SmartCareViewModel | (all 4 below) | — |
 | `.clean` | Sweep | CleanViewModel | CleaningService | None |
 | `.protect` | Security | ProtectViewModel | MalwareScanService, OsqueryService | clamav, osquery |
-| `.speed` | Boost | SpeedViewModel | PerformanceService | None |
+| `.speed` | Boost | SpeedViewModel | PerformanceService, OptimizationService, MoleService, MacMonService | mole, macmon |
 | `.update` | Updates | UpdateViewModel | UpdateService, MasService | mas |
 | `.uninstall` | Uninstaller | UninstallViewModel | UninstallService | None |
 | `.declutter` | Duplicates | DeclutterViewModel | DuplicateFinderService, CzkawkaService | fclones, czkawka |
@@ -99,24 +99,33 @@ Each returns a `ScanOutput` enum. Progress updates as each completes. Results ar
 
 ## Principles
 
-### 1. Never Escalate Privileges
+### 1. Privilege Escalation Is Allowed — TCC Prompts Are Not
 
-**No `sudo`. No `osascript`. No Apple Events. Ever.**
+**`sudo` via standard macOS auth dialog is OK. TCC permission prompts (Accessibility, Screen Recording, etc.) are never OK.**
 
-The app runs entirely as the current user. Homebrew itself refuses to run as root. Cask installs handle their own privilege escalation internally. File removal uses macOS `trashItem` API.
+For tasks requiring root (DNS flush, periodic maintenance, disk permissions), use:
+```swift
+osascript -e 'do shell script "..." with administrator privileges'
+```
+This shows the standard macOS password dialog — users expect and understand it.
 
-If a feature requires root access, it doesn't belong in this app.
+**What is forbidden:**
+- `osascript -e 'tell application "System Events" ...'` — triggers Accessibility TCC
+- Any API that triggers Screen Recording, Camera, Microphone, or Contacts TCC prompts
+- Running `sudo` directly (no TTY in GUI apps; use `do shell script` instead)
 
-### 2. Never Trigger Permission Prompts
+Homebrew runs as the current user (never root). Cask installs handle their own elevation internally. File removal uses macOS `trashItem` API.
+
+### 2. Never Trigger TCC Permission Prompts
 
 macOS TCC (Transparency, Consent, and Control) will prompt users for Screen Recording, Accessibility, etc. when:
-- An unsigned app uses `osascript`
-- An unsigned app sends Apple Events
-- An unsigned app uses certain system APIs
+- An app sends Apple Events to other apps (`tell application "System Events"`)
+- An app uses certain system APIs (screen capture, input monitoring)
 
 We prevent this by:
 - **Ad-hoc code signing** the app bundle (no developer account needed)
-- Never using `osascript` or Apple Events
+- Never using `osascript` with `tell application` (Apple Events)
+- Using only `do shell script ... with administrator privileges` for auth (standard password dialog, not TCC)
 - Using only safe system APIs
 
 ### 3. All Shell Commands Go Through ShellExecutor
@@ -144,7 +153,7 @@ When a module scans, it writes results to ScanStore. When a user navigates to a 
 
 ### 7. Graceful Degradation
 
-Every external tool is optional. If clamav isn't installed, the Security module still works (pattern-based detection). If fclones isn't installed, duplicates are found via native SHA256. If gdu isn't installed, SpaceLens uses FileManager.
+Every external tool is optional. If clamav isn't installed, the Security module still works (pattern-based detection). If fclones isn't installed, duplicates are found via native SHA256. If gdu isn't installed, SpaceLens uses FileManager. If mole isn't installed, Boost runs native optimization tasks.
 
 ### 8. One Module = One View + One ViewModel + One Service
 
@@ -162,9 +171,13 @@ Without this, macOS shows spurious permission dialogs for basic operations.
 
 These are real mistakes that were made during development. Don't repeat them.
 
-### ❌ Using `osascript` for Anything
+### ❌ Using `osascript` with Apple Events
 
-`osascript` (AppleScript) from an unsigned app triggers Screen Recording and Accessibility permission prompts on macOS. Even if the script doesn't touch the screen. Even if the app is later code-signed, cached TCC entries from previous unsigned runs persist. **Never use `osascript`.**
+`osascript -e 'tell application "System Events" ...'` triggers TCC (Accessibility, Screen Recording) prompts. Even from a code-signed app. Cached TCC denials persist across app versions.
+
+**OK:** `osascript -e 'do shell script "cmd" with administrator privileges'` — this is the standard macOS auth dialog, not a TCC prompt.
+
+**Not OK:** `osascript -e 'tell application "System Events" to ...'` — this triggers Accessibility TCC.
 
 ### ❌ Using `sudo` with Homebrew
 
@@ -244,6 +257,8 @@ OpenCMM.app/Contents/
 | `App/OpenCMMApp.swift` | @main entry — WindowGroup + MenuBarExtra |
 | `Services/ScanStore.swift` | Central @Published state for all scan results |
 | `Services/DependencyManager.swift` | Tool detection, Homebrew install, manifest tracking |
+| `Services/MoleService.swift` | Wraps Mole CLI (`mo status --json`, `mo optimize`, `mo analyze --json`) |
+| `Services/OptimizationService.swift` | Native system optimization — 11 tasks (8 non-privileged + 3 privileged) |
 | `Utilities/ShellExecutor.swift` | All shell execution — PATH injection, pipe safety, quoting |
 | `Utilities/AppConstants.swift` | Health thresholds, file size limits, timing, version |
 | `Utilities/FileUtils.swift` | Directory size, file ops, move to trash |

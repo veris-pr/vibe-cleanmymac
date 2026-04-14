@@ -5,10 +5,11 @@ struct SpeedView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // MARK: - Header
             moduleHeader(
                 icon: "gauge.with.needle",
                 title: "Boost",
-                subtitle: "System monitoring and startup management"
+                subtitle: "Monitor, tune, and optimize your Mac"
             )
 
             Divider()
@@ -30,9 +31,23 @@ struct SpeedView: View {
                         .foregroundStyle(Theme.Colors.muted)
                 }
                 Spacer()
+            } else if viewModel.isOptimizing || viewModel.optimizationComplete {
+                optimizationView
             } else if (!viewModel.hostname.isEmpty && viewModel.hostname != "Mac") || !viewModel.loginItems.isEmpty || viewModel.isMacmonInstalled {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
+                        if !viewModel.isMoleInstalled {
+                            DependencyBanner(
+                                toolName: "Mole",
+                                description: "System optimizer — deep clean, optimize, and analyze your Mac. Provides enhanced optimization with 14+ tasks.",
+                                isInstalled: viewModel.isMoleInstalled,
+                                isInstalling: viewModel.isInstallingMole,
+                                installError: viewModel.installError,
+                                installAction: { Task { await viewModel.installMole() } }
+                            )
+                            .padding(.horizontal, Theme.Spacing.lg)
+                        }
+
                         if !viewModel.isMacmonInstalled {
                             DependencyBanner(
                                 toolName: "macmon",
@@ -62,16 +77,28 @@ struct SpeedView: View {
                 Spacer()
                 EmptyStateView(
                     icon: "gauge.with.needle",
-                    message: "Manage startup items",
-                    detail: "View and manage login items and launch agents that run at startup."
+                    message: "Monitor and optimize",
+                    detail: "View live performance metrics, manage startup items, and run system optimizations."
                 )
                 Spacer()
             }
 
             // MARK: - Footer
             if !viewModel.isLoading {
-                footerBar {
-                    ghostButton("Rescan") { Task { await viewModel.loadData() } }
+                if viewModel.isOptimizing {
+                    // No footer during optimization
+                } else if viewModel.optimizationComplete {
+                    footerBar {
+                        ghostButton("Done") {
+                            viewModel.optimizationComplete = false
+                            viewModel.optimizationSteps = []
+                        }
+                    }
+                } else {
+                    footerBar {
+                        ghostButton("Rescan") { Task { await viewModel.loadData() } }
+                        ScanButton(title: "Optimize") { Task { await viewModel.optimize() } }
+                    }
                 }
             }
         }
@@ -80,6 +107,62 @@ struct SpeedView: View {
             if viewModel.hostname == "Mac" && viewModel.loginItems.isEmpty {
                 await viewModel.loadData()
             }
+        }
+    }
+
+    // MARK: - Optimization View
+
+    private var optimizationView: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(viewModel.optimizationSteps) { step in
+                    HStack(spacing: Theme.Spacing.md) {
+                        // Status indicator
+                        Group {
+                            switch step.status {
+                            case .pending:
+                                Image(systemName: "circle")
+                                    .foregroundStyle(Theme.Colors.muted.opacity(0.3))
+                            case .running:
+                                ProgressView()
+                                    .controlSize(.small)
+                            case .completed:
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Theme.Colors.success)
+                            case .failed:
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(Theme.Colors.warning)
+                            }
+                        }
+                        .frame(width: 16)
+
+                        Image(systemName: step.icon)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.Colors.muted)
+                            .frame(width: 18)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(step.name)
+                                .font(Theme.Font.body)
+                                .foregroundStyle(Theme.Colors.foreground)
+                            if let detail = step.detail {
+                                Text(detail)
+                                    .font(Theme.Font.caption)
+                                    .foregroundStyle(step.status == .failed ? Theme.Colors.warning : Theme.Colors.muted)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.sm)
+
+                    if step.id != viewModel.optimizationSteps.last?.id {
+                        Divider().padding(.horizontal, Theme.Spacing.lg)
+                    }
+                }
+            }
+            .padding(.vertical, Theme.Spacing.md)
         }
     }
 
@@ -101,7 +184,6 @@ struct SpeedView: View {
             }
             .padding(.bottom, Theme.Spacing.xs)
 
-            // CPU & GPU row
             HStack(spacing: Theme.Spacing.lg) {
                 metricGauge(
                     label: "CPU",
@@ -120,7 +202,6 @@ struct SpeedView: View {
                 )
             }
 
-            // Swap info (if any swap in use)
             if metrics.swapUsed > 0 {
                 HStack {
                     Text("Swap")
@@ -236,6 +317,23 @@ struct SpeedView: View {
             detailRow("macOS", viewModel.osVersion)
             Divider()
             detailRow("Uptime", Formatters.duration(viewModel.uptime))
+            if let score = viewModel.moleHealthScore {
+                Divider()
+                HStack {
+                    Text("Health")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.muted)
+                    Spacer()
+                    Text("\(score)/100")
+                        .font(Theme.Font.bodyMedium)
+                        .foregroundStyle(score >= 80 ? Theme.Colors.success : score >= 50 ? Theme.Colors.warning : Theme.Colors.destructive)
+                    if let msg = viewModel.moleHealthMsg {
+                        Text("· \(msg)")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                    }
+                }
+            }
         }
         .cardStyle()
     }

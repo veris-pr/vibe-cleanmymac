@@ -16,10 +16,23 @@ class SpeedViewModel: ObservableObject {
     @Published var installError: String?
     @Published var isMonitoring = false
 
+    // Mole
+    @Published var isMoleInstalled = false
+    @Published var isInstallingMole = false
+    @Published var moleHealthScore: Int?
+    @Published var moleHealthMsg: String?
+
+    // Optimization
+    @Published var isOptimizing = false
+    @Published var optimizationComplete = false
+    @Published var optimizationSteps: [OptimizationStep] = []
+
     var scanStore: ScanStore?
 
     private let service = PerformanceService()
     private let macmonService = MacMonService()
+    private let optimizationService = OptimizationService()
+    private let moleService = MoleService()
     private let dependencyManager = DependencyManager.shared
     private var monitorTask: Task<Void, Never>?
 
@@ -31,6 +44,16 @@ class SpeedViewModel: ObservableObject {
         osVersion = ProcessInfo.processInfo.operatingSystemVersionString
         uptime = ProcessInfo.processInfo.systemUptime
         isMacmonInstalled = await dependencyManager.isInstalled(.macmon)
+        isMoleInstalled = await dependencyManager.isInstalled(.mole)
+
+        // Load mole health status if available
+        if isMoleInstalled {
+            if let moleStatus = await moleService.status() {
+                moleHealthScore = moleStatus.healthScore
+                moleHealthMsg = moleStatus.healthScoreMsg
+            }
+        }
+
         isLoading = false
         updateSummary()
 
@@ -52,13 +75,29 @@ class SpeedViewModel: ObservableObject {
         isInstallingMacmon = false
     }
 
+    func installMole() async {
+        isInstallingMole = true
+        installError = nil
+        do {
+            try await dependencyManager.install(.mole)
+            isMoleInstalled = true
+            if let status = await moleService.status() {
+                moleHealthScore = status.healthScore
+                moleHealthMsg = status.healthScoreMsg
+            }
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingMole = false
+    }
+
     func startMonitoring() {
         guard monitorTask == nil else { return }
         isMonitoring = true
         monitorTask = Task {
             while !Task.isCancelled {
                 metrics = await macmonService.sample()
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s interval
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
     }
@@ -102,5 +141,146 @@ class SpeedViewModel: ObservableObject {
             timestamp: Date()
         )
         scanStore?.updateSummary(summary)
+    }
+
+    // MARK: - Optimization
+
+    func optimize() async {
+        isOptimizing = true
+        optimizationComplete = false
+        errorMessage = nil
+
+        if isMoleInstalled {
+            await optimizeWithMole()
+        } else {
+            await optimizeNative()
+        }
+
+        isOptimizing = false
+        optimizationComplete = true
+    }
+
+    /// Run optimization via Mole CLI — parses output into steps.
+    private func optimizeWithMole() async {
+        optimizationSteps = [
+            OptimizationStep(id: "mole", name: "Mole System Optimize", icon: "bolt.fill", status: .running)
+        ]
+
+        do {
+            let result = try await moleService.optimize()
+            // Parse mole output into individual steps
+            let steps = parseMoleOutput(result.output)
+            if steps.isEmpty {
+                optimizationSteps = [
+                    OptimizationStep(
+                        id: "mole",
+                        name: "Mole System Optimize",
+                        icon: "bolt.fill",
+                        status: .completed,
+                        detail: "\(result.optimizationCount) optimizations applied"
+                    )
+                ]
+            } else {
+                optimizationSteps = steps
+            }
+        } catch {
+            optimizationSteps[0].status = .failed
+            optimizationSteps[0].detail = error.localizedDescription
+        }
+    }
+
+    /// Parse `mo optimize` output into discrete steps.
+    private func parseMoleOutput(_ output: String) -> [OptimizationStep] {
+        var steps: [OptimizationStep] = []
+        var currentName: String?
+        var currentDetails: [String] = []
+        let iconMap: [String: String] = [
+            "DNS": "wifi", "Spotlight": "magnifyingglass", "Finder": "eye",
+            "App State": "clock.arrow.circlepath", "Broken Config": "wrench",
+            "Network": "network", "Database": "cylinder", "LaunchServices": "arrow.triangle.2.circlepath",
+            "Font": "textformat", "Dock": "dock.rectangle", "Memory": "memorychip",
+            "Permission": "lock.shield", "Bluetooth": "wave.3.right"
+        ]
+
+        for line in output.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("➤ ") {
+                // Flush previous step
+                if let name = currentName {
+                    let icon = iconMap.first(where: { name.contains($0.key) })?.value ?? "gear"
+                    let detail = currentDetails.joined(separator: "; ")
+                    let id = name.lowercased().replacingOccurrences(of: " ", with: "_")
+                    steps.append(OptimizationStep(id: id, name: name, icon: icon, status: .completed, detail: detail.isEmpty ? nil : detail))
+                }
+                currentName = String(trimmed.dropFirst(2))
+                currentDetails = []
+            } else if trimmed.hasPrefix("→ ") || trimmed.hasPrefix("◎ ") {
+                currentDetails.append(String(trimmed.dropFirst(2)))
+            }
+        }
+        // Flush last step
+        if let name = currentName {
+            let icon = iconMap.first(where: { name.contains($0.key) })?.value ?? "gear"
+            let detail = currentDetails.joined(separator: "; ")
+            let id = name.lowercased().replacingOccurrences(of: " ", with: "_")
+            steps.append(OptimizationStep(id: id, name: name, icon: icon, status: .completed, detail: detail.isEmpty ? nil : detail))
+        }
+
+        return steps
+    }
+
+    /// Native optimization fallback when Mole is not installed.
+    private func optimizeNative() async {
+        optimizationSteps = [
+            OptimizationStep(id: "launchServices", name: "Rebuild Launch Services", icon: "arrow.triangle.2.circlepath"),
+            OptimizationStep(id: "quicklook", name: "Refresh QuickLook Caches", icon: "eye"),
+            OptimizationStep(id: "quarantine", name: "Clear Download History", icon: "shield.lefthalf.filled"),
+            OptimizationStep(id: "launchAgents", name: "Clean Broken Agents", icon: "gearshape.2"),
+            OptimizationStep(id: "preferences", name: "Fix Broken Preferences", icon: "wrench"),
+            OptimizationStep(id: "savedStates", name: "Clean Old Saved States", icon: "clock.arrow.circlepath"),
+            OptimizationStep(id: "dsstore", name: "Prevent Network .DS_Store", icon: "network"),
+            OptimizationStep(id: "dock", name: "Refresh Dock", icon: "dock.rectangle"),
+            OptimizationStep(id: "dns", name: "Flush DNS Cache", icon: "wifi"),
+            OptimizationStep(id: "periodic", name: "Run Periodic Maintenance", icon: "calendar.badge.clock"),
+            OptimizationStep(id: "permissions", name: "Repair Disk Permissions", icon: "lock.shield"),
+        ]
+
+        for i in optimizationSteps.indices {
+            optimizationSteps[i].status = .running
+            do {
+                let result: OptimizationService.StepResult
+                switch optimizationSteps[i].id {
+                case "launchServices":
+                    result = try await optimizationService.rebuildLaunchServices()
+                case "quicklook":
+                    result = try await optimizationService.refreshQuickLookCaches()
+                case "quarantine":
+                    result = try await optimizationService.clearQuarantineHistory()
+                case "launchAgents":
+                    result = try await optimizationService.cleanBrokenLaunchAgents()
+                case "preferences":
+                    result = try await optimizationService.fixBrokenPreferences()
+                case "savedStates":
+                    result = try await optimizationService.cleanOldSavedStates()
+                case "dsstore":
+                    result = try await optimizationService.preventNetworkDSStore()
+                case "dock":
+                    result = try await optimizationService.refreshDock()
+                case "dns":
+                    result = try await optimizationService.flushDNSCache()
+                case "periodic":
+                    result = try await optimizationService.runPeriodicMaintenance()
+                case "permissions":
+                    result = try await optimizationService.repairDiskPermissions()
+                default:
+                    continue
+                }
+                optimizationSteps[i].status = .completed
+                optimizationSteps[i].detail = result.detail
+            } catch {
+                optimizationSteps[i].status = .failed
+                optimizationSteps[i].detail = error.localizedDescription
+            }
+        }
     }
 }
