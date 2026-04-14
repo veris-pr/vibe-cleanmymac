@@ -42,6 +42,6 @@ enum AppConstants {
     }
 
     // MARK: - App Info
-    static let version = "0.1.7"
+    static let version = "0.1.8"
     static let bundleId = "com.opencmm.app"
 }
