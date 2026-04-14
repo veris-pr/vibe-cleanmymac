@@ -38,6 +38,8 @@ class SettingsViewModel: ObservableObject {
     @Published var isRefreshing = false
     @Published var isInstallingHomebrew = false
     @Published var homebrewInstallError: String?
+    @Published var showUninstallConfirmation = false
+    @Published var isUninstallingSelf = false
 
     private let dependencyManager = DependencyManager.shared
 
@@ -48,6 +50,7 @@ class SettingsViewModel: ObservableObject {
         "fclones": "Duplicates",
         "czkawka": "Duplicates",
         "macmon": "Boost",
+        "mole": "Boost",
     ]
 
     func refresh() async {
@@ -132,5 +135,33 @@ class SettingsViewModel: ObservableObject {
             tools[idx].statusText = nil
         }
         tools[idx].isUninstalling = false
+    }
+
+    // MARK: - Self-Uninstall
+
+    /// Number of managed tools that would be removed.
+    var managedToolCount: Int {
+        tools.filter { $0.managedByUs }.count
+    }
+
+    func uninstallOpenCMM() async {
+        isUninstallingSelf = true
+
+        // 1. Remove tools we installed
+        await dependencyManager.uninstallAll()
+
+        // 2. Remove app bundle (move to Trash)
+        let appPath = Bundle.main.bundlePath
+        do {
+            try FileUtils.moveToTrash(appPath)
+        } catch {
+            // If app bundle removal fails (e.g. running from Xcode), try /Applications
+            try? FileUtils.moveToTrash("/Applications/OpenCMM.app")
+        }
+
+        // 3. Quit
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApplication.shared.terminate(nil)
+        }
     }
 }

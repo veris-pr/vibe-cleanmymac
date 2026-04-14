@@ -137,12 +137,59 @@ struct SettingsView: View {
                     }
                     .padding(Theme.Spacing.lg)
                     .cardStyle()
+
+                    // Uninstall OpenCMM
+                    VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                        Text("Uninstall OpenCMM")
+                            .font(Theme.Font.heading)
+                            .foregroundStyle(Theme.Colors.foreground)
+
+                        Text("Remove OpenCMM, its data, and any tools it installed. Tools you installed yourself via Homebrew will not be touched.")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                if viewModel.managedToolCount > 0 {
+                                    Text("\(viewModel.managedToolCount) managed tool\(viewModel.managedToolCount == 1 ? "" : "s") will be removed")
+                                        .font(Theme.Font.caption)
+                                        .foregroundStyle(Theme.Colors.warning)
+                                }
+                                Text("~/.opencmm data directory will be removed")
+                                    .font(Theme.Font.caption)
+                                    .foregroundStyle(Theme.Colors.muted)
+                            }
+                            Spacer()
+                            if viewModel.isUninstallingSelf {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Button("Uninstall OpenCMM") {
+                                    viewModel.showUninstallConfirmation = true
+                                }
+                                .font(Theme.Font.bodyMedium)
+                                .foregroundStyle(Theme.Colors.destructive)
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                    }
+                    .padding(Theme.Spacing.lg)
+                    .cardStyle()
                 }
                 .padding(Theme.Spacing.lg)
             }
         }
         .background(Theme.Colors.background)
         .task { await viewModel.refresh() }
+        .alert("Uninstall OpenCMM", isPresented: $viewModel.showUninstallConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Uninstall", role: .destructive) {
+                Task { await viewModel.uninstallOpenCMM() }
+            }
+        } message: {
+            Text("This will remove OpenCMM, its data (~/.opencmm), and any tools it installed. The app will be moved to Trash.\n\nThis cannot be undone.")
+        }
     }
 
     private func settingsToolRow(_ tool: SettingsViewModel.ToolRow) -> some View {
