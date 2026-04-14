@@ -252,10 +252,21 @@ struct UninstallView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(app.name)
-                            .font(Theme.Font.bodyMedium)
-                            .foregroundStyle(Theme.Colors.foreground)
-                            .lineLimit(1)
+                        HStack(spacing: Theme.Spacing.xs) {
+                            Text(app.name)
+                                .font(Theme.Font.bodyMedium)
+                                .foregroundStyle(Theme.Colors.foreground)
+                                .lineLimit(1)
+                            if app.isBrewCask {
+                                Text("Brew")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(Theme.Colors.accent)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Theme.Colors.accent.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                            }
+                        }
                         Text(app.bundleIdentifier)
                             .font(Theme.Font.caption)
                             .foregroundStyle(Theme.Colors.muted)

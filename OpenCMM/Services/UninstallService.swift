@@ -166,15 +166,23 @@ actor UninstallService {
             }
         }
 
-        // 5. Remove the app itself
+        // 5. Remove the app itself (brew cask or manual)
         var removedApp = false
-        do {
-            try FileUtils.moveToTrash(app.path)
-            removedApp = true
-            freedBytes += app.size
-            logger.info("Moved app to trash: \(app.path)")
-        } catch {
-            logger.error("Failed to remove app \(app.path): \(error.localizedDescription)")
+        if let caskName = app.brewCaskName {
+            // Use brew uninstall --cask --zap for brew-managed apps
+            removedApp = await uninstallBrewCask(caskName: caskName, appPath: app.path)
+            if removedApp {
+                freedBytes += app.size
+            }
+        } else {
+            do {
+                try FileUtils.moveToTrash(app.path)
+                removedApp = true
+                freedBytes += app.size
+                logger.info("Moved app to trash: \(app.path)")
+            } catch {
+                logger.error("Failed to remove app \(app.path): \(error.localizedDescription)")
+            }
         }
 
         // 6. Post-removal cleanup (only if app was removed)
@@ -239,6 +247,98 @@ actor UninstallService {
         _ = try? await ShellExecutor.shellAsync("killall Dock 2>/dev/null; true")
     }
 
+    // MARK: - Brew Cask Detection
+
+    /// Multi-stage brew cask detection (fast → slow, deterministic → heuristic).
+    /// Returns the cask token if the app is Homebrew-managed, nil otherwise.
+    private func detectBrewCask(appPath: String) -> String? {
+        let fm = FileManager.default
+
+        // Stage 1: Resolve symlink and check if inside Caskroom
+        if let resolved = try? fm.destinationOfSymbolicLink(atPath: appPath) {
+            if let token = extractCaskToken(from: resolved) {
+                return token
+            }
+        }
+
+        // Stage 1b: Also try resolving the real path (for indirect symlinks)
+        let realPath = URL(fileURLWithPath: appPath).resolvingSymlinksInPath().path
+        if let token = extractCaskToken(from: realPath) {
+            return token
+        }
+
+        // Stage 2: Search Caskroom for matching .app bundle name
+        let appBundleName = (appPath as NSString).lastPathComponent
+        let caskrooms = ["/opt/homebrew/Caskroom", "/usr/local/Caskroom"]
+        var foundTokens: Set<String> = []
+
+        for caskroom in caskrooms {
+            guard fm.fileExists(atPath: caskroom) else { continue }
+            // Look for .app bundles inside Caskroom/<token>/<version>/
+            if let tokens = try? fm.contentsOfDirectory(atPath: caskroom) {
+                for token in tokens {
+                    let tokenPath = "\(caskroom)/\(token)"
+                    if let versions = try? fm.contentsOfDirectory(atPath: tokenPath) {
+                        for version in versions {
+                            let appInCask = "\(tokenPath)/\(version)/\(appBundleName)"
+                            if fm.fileExists(atPath: appInCask) {
+                                foundTokens.insert(token)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Only succeed if exactly one cask matches (avoid wrong uninstall)
+        if foundTokens.count == 1, let token = foundTokens.first {
+            return token
+        }
+
+        return nil
+    }
+
+    /// Extract cask token from a Caskroom path.
+    private func extractCaskToken(from path: String) -> String? {
+        // Path must be inside Caskroom: /opt/homebrew/Caskroom/<token>/... or /usr/local/Caskroom/<token>/...
+        let prefixes = ["/opt/homebrew/Caskroom/", "/usr/local/Caskroom/"]
+        for prefix in prefixes {
+            if path.hasPrefix(prefix) {
+                let remainder = String(path.dropFirst(prefix.count))
+                let token = remainder.components(separatedBy: "/").first ?? ""
+                // Validate: cask tokens are lowercase alphanumeric with hyphens
+                if !token.isEmpty, token.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" }) {
+                    return token
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Uninstall a Homebrew cask using `brew uninstall --cask --zap`.
+    private func uninstallBrewCask(caskName: String, appPath: String) async -> Bool {
+        logger.info("Uninstalling brew cask: \(caskName)")
+        let result = try? await ShellExecutor.shellAsync(
+            "HOMEBREW_NO_ENV_HINTS=1 HOMEBREW_NO_AUTO_UPDATE=1 NONINTERACTIVE=1 brew uninstall --cask --zap \(ShellExecutor.quote(caskName))"
+        )
+
+        let success = result != nil && !FileUtils.exists(appPath)
+        if success {
+            logger.info("Successfully uninstalled brew cask: \(caskName)")
+        } else {
+            // Fallback: try manual removal if brew uninstall failed
+            logger.warning("brew uninstall --cask --zap failed for \(caskName), falling back to manual removal")
+            do {
+                try FileUtils.moveToTrash(appPath)
+                return true
+            } catch {
+                logger.error("Manual fallback also failed for \(appPath): \(error.localizedDescription)")
+                return false
+            }
+        }
+        return success
+    }
+
     // MARK: - Private Helpers
 
     private func inspectApp(at path: String) -> InstalledApp? {
@@ -253,12 +353,16 @@ actor UninstallService {
         // Load icon from app bundle
         let icon = NSWorkspace.shared.icon(forFile: path)
 
+        // Detect brew cask
+        let caskName = detectBrewCask(appPath: path)
+
         return InstalledApp(
             name: name,
             bundleIdentifier: bundleId,
             path: path,
             icon: icon,
-            size: size
+            size: size,
+            brewCaskName: caskName
         )
     }
 

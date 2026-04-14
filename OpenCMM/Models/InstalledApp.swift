@@ -10,9 +10,13 @@ struct InstalledApp: Identifiable {
     let icon: NSImage?
     let size: Int64
     let isSelected: Bool = false
+    /// Homebrew cask token if this app is managed by brew, nil otherwise.
+    var brewCaskName: String?
 
     /// Known locations where apps leave behind data.
     var relatedPaths: [AppLeftover] = []
+
+    var isBrewCask: Bool { brewCaskName != nil }
 
     var totalSize: Int64 {
         size + relatedPaths.reduce(0) { $0 + $1.size }
