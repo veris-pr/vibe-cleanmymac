@@ -241,12 +241,20 @@ class SpeedViewModel: ObservableObject {
             OptimizationStep(id: "quarantine", name: "Clear Download History", icon: "shield.lefthalf.filled"),
             OptimizationStep(id: "launchAgents", name: "Clean Broken Agents", icon: "gearshape.2"),
             OptimizationStep(id: "preferences", name: "Fix Broken Preferences", icon: "wrench"),
+            OptimizationStep(id: "sharedFileLists", name: "Repair Shared File Lists", icon: "list.bullet"),
             OptimizationStep(id: "savedStates", name: "Clean Old Saved States", icon: "clock.arrow.circlepath"),
             OptimizationStep(id: "dsstore", name: "Prevent Network .DS_Store", icon: "network"),
+            OptimizationStep(id: "fontCache", name: "Rebuild Font Cache", icon: "textformat"),
+            OptimizationStep(id: "appDatabases", name: "Optimize App Databases", icon: "cylinder"),
+            OptimizationStep(id: "notifications", name: "Clean Notification Database", icon: "bell.badge"),
+            OptimizationStep(id: "coreduet", name: "Optimize Knowledge Database", icon: "brain"),
+            OptimizationStep(id: "spotlight", name: "Check Spotlight Index", icon: "magnifyingglass"),
             OptimizationStep(id: "dock", name: "Refresh Dock", icon: "dock.rectangle"),
             OptimizationStep(id: "dns", name: "Flush DNS Cache", icon: "wifi"),
             OptimizationStep(id: "periodic", name: "Run Periodic Maintenance", icon: "calendar.badge.clock"),
             OptimizationStep(id: "permissions", name: "Repair Disk Permissions", icon: "lock.shield"),
+            OptimizationStep(id: "memory", name: "Release Memory Pressure", icon: "memorychip"),
+            OptimizationStep(id: "networkStack", name: "Flush Network Stack", icon: "antenna.radiowaves.left.and.right"),
         ]
 
         for i in optimizationSteps.indices {
@@ -264,10 +272,22 @@ class SpeedViewModel: ObservableObject {
                     result = try await optimizationService.cleanBrokenLaunchAgents()
                 case "preferences":
                     result = try await optimizationService.fixBrokenPreferences()
+                case "sharedFileLists":
+                    result = try await optimizationService.repairSharedFileLists()
                 case "savedStates":
                     result = try await optimizationService.cleanOldSavedStates()
                 case "dsstore":
                     result = try await optimizationService.preventNetworkDSStore()
+                case "fontCache":
+                    result = try await optimizationService.rebuildFontCache()
+                case "appDatabases":
+                    result = try await optimizationService.vacuumAppDatabases()
+                case "notifications":
+                    result = try await optimizationService.cleanNotificationDatabase()
+                case "coreduet":
+                    result = try await optimizationService.cleanCoreDuetDatabase()
+                case "spotlight":
+                    result = try await optimizationService.optimizeSpotlightIndex()
                 case "dock":
                     result = try await optimizationService.refreshDock()
                 case "dns":
@@ -276,6 +296,10 @@ class SpeedViewModel: ObservableObject {
                     result = try await optimizationService.runPeriodicMaintenance()
                 case "permissions":
                     result = try await optimizationService.repairDiskPermissions()
+                case "memory":
+                    result = try await optimizationService.purgeMemory()
+                case "networkStack":
+                    result = try await optimizationService.flushNetworkStack()
                 default:
                     continue
                 }
