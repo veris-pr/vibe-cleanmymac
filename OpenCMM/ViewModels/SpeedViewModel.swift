@@ -38,6 +38,16 @@ class SpeedViewModel: ObservableObject {
     private let dependencyManager = DependencyManager.shared
     private var monitorTask: Task<Void, Never>?
 
+    func checkDependencies() async {
+        isMacmonInstalled = await dependencyManager.isInstalled(.macmon)
+        isMoleInstalled = await dependencyManager.isInstalled(.mole)
+        macmonVersion = await dependencyManager.status(for: .macmon).version
+        moleVersion = await dependencyManager.status(for: .mole).version
+        hostname = Host.current().localizedName ?? "Mac"
+        osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        uptime = ProcessInfo.processInfo.systemUptime
+    }
+
     func loadData() async {
         isLoading = true
         errorMessage = nil

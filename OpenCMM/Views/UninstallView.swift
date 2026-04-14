@@ -45,9 +45,7 @@ struct UninstallView: View {
         }
         .background(Theme.Colors.background)
         .task {
-            if viewModel.apps.isEmpty {
-                await viewModel.loadApps()
-            }
+            // Only check dependencies on load, don't auto-scan
         }
         .alert("Uninstall App", isPresented: $viewModel.showConfirmation) {
             Button("Cancel", role: .cancel) { }
@@ -89,124 +87,120 @@ struct UninstallView: View {
 
     private var appListView: some View {
         VStack(spacing: 0) {
-            // Search & Sort bar
-            HStack(spacing: Theme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(Theme.Colors.muted)
-                        .font(Theme.Font.bodySmall)
-                    TextField("Search apps & packages...", text: Binding(
-                        get: { viewModel.searchText },
-                        set: { viewModel.updateSearch($0) }
-                    ))
-                    .textFieldStyle(.plain)
-                    .font(Theme.Font.body)
-
-                    if !viewModel.searchText.isEmpty {
-                        Button {
-                            viewModel.updateSearch("")
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(Theme.Colors.muted)
-                                .font(Theme.Font.caption)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Theme.Colors.muted.opacity(0.1))
-                .cornerRadius(Theme.Radius.md)
-
-                Picker("Sort", selection: Binding(
-                    get: { viewModel.sortOrder },
-                    set: { viewModel.updateSort($0) }
-                )) {
-                    ForEach(UninstallViewModel.SortOrder.allCases, id: \.self) { order in
-                        Text(order.rawValue).tag(order)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 140)
-            }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.vertical, Theme.Spacing.sm)
-
-            Divider()
-
-            // App list + Brew packages
-            if viewModel.filteredApps.isEmpty && viewModel.filteredBrewPackages.isEmpty {
+            if viewModel.apps.isEmpty && !viewModel.isLoadingBrew {
+                // Not yet scanned — show empty state
                 Spacer()
                 EmptyStateView(
-                    icon: "app.dashed",
-                    message: viewModel.searchText.isEmpty ? "No applications found" : "No matching apps",
-                    detail: viewModel.searchText.isEmpty ? "No apps detected in /Applications" : "No apps matching \"\(viewModel.searchText)\""
+                    icon: "trash.square",
+                    message: "Ready to scan",
+                    detail: "Tap Scan below to find installed applications and Homebrew packages."
                 )
                 Spacer()
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        // Software section
-                        if !viewModel.filteredApps.isEmpty {
-                            sectionHeader(
-                                title: "Software",
-                                count: viewModel.filteredApps.count,
-                                icon: "app.fill"
-                            )
-                            ForEach(viewModel.filteredApps) { app in
-                                appRow(app)
-                                Divider().padding(.leading, 72)
-                            }
-                        }
+                // Search & Sort bar
+                HStack(spacing: Theme.Spacing.sm) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(Theme.Colors.muted)
+                            .font(Theme.Font.bodySmall)
+                        TextField("Search apps & packages...", text: Binding(
+                            get: { viewModel.searchText },
+                            set: { viewModel.updateSearch($0) }
+                        ))
+                        .textFieldStyle(.plain)
+                        .font(Theme.Font.body)
 
-                        // Brew packages section
-                        if !viewModel.filteredBrewPackages.isEmpty {
-                            brewPackagesSection
-                        } else if viewModel.isLoadingBrew {
-                            HStack(spacing: Theme.Spacing.sm) {
-                                ProgressView().controlSize(.small)
-                                Text("Loading Homebrew packages...")
-                                    .font(Theme.Font.caption)
+                        if !viewModel.searchText.isEmpty {
+                            Button {
+                                viewModel.updateSearch("")
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(Theme.Colors.muted)
+                                    .font(Theme.Font.caption)
                             }
-                            .padding(Theme.Spacing.lg)
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(.vertical, Theme.Spacing.xs)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Theme.Colors.muted.opacity(0.1))
+                    .cornerRadius(Theme.Radius.md)
+
+                    Picker("Sort", selection: Binding(
+                        get: { viewModel.sortOrder },
+                        set: { viewModel.updateSort($0) }
+                    )) {
+                        ForEach(UninstallViewModel.SortOrder.allCases, id: \.self) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 140)
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.vertical, Theme.Spacing.sm)
+
+                Divider()
+
+                // App list + Brew packages
+                if viewModel.filteredApps.isEmpty && viewModel.filteredBrewPackages.isEmpty {
+                    Spacer()
+                    EmptyStateView(
+                        icon: "app.dashed",
+                        message: "No matching apps",
+                        detail: "No apps matching \"\(viewModel.searchText)\""
+                    )
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            // Software section
+                            if !viewModel.filteredApps.isEmpty {
+                                sectionHeader(
+                                    title: "Software",
+                                    count: viewModel.filteredApps.count,
+                                    icon: "app.fill"
+                                )
+                                ForEach(viewModel.filteredApps) { app in
+                                    appRow(app)
+                                    Divider().padding(.leading, 72)
+                                }
+                            }
+
+                            // Brew packages section
+                            if !viewModel.filteredBrewPackages.isEmpty {
+                                brewPackagesSection
+                            } else if viewModel.isLoadingBrew {
+                                HStack(spacing: Theme.Spacing.sm) {
+                                    ProgressView().controlSize(.small)
+                                    Text("Loading Homebrew packages...")
+                                        .font(Theme.Font.caption)
+                                        .foregroundStyle(Theme.Colors.muted)
+                                }
+                                .padding(Theme.Spacing.lg)
+                            }
+                        }
+                        .padding(.vertical, Theme.Spacing.xs)
+                    }
                 }
             }
 
             // Action bar
-            actionBar(
-                label: actionBarLabel,
-                buttonTitle: "Uninstall",
-                isWorking: viewModel.isUninstalling,
-                action: {
-                    if viewModel.selectedCount > 0 {
+            footerBar {
+                if !viewModel.apps.isEmpty {
+                    ghostButton("Rescan") { Task { await viewModel.loadApps() } }
+                }
+                ScanButton(title: viewModel.apps.isEmpty ? "Scan" : "Uninstall") {
+                    if viewModel.apps.isEmpty {
+                        Task { await viewModel.loadApps() }
+                    } else if viewModel.selectedCount > 0 {
                         viewModel.showBatchConfirmation = true
                     } else if viewModel.selectedBrewCount > 0 {
                         viewModel.showBrewConfirmation = true
                     }
-                },
-                secondaryTitle: "Rescan",
-                secondaryAction: { Task { await viewModel.loadApps() } }
-            )
+                }
+            }
         }
-    }
-
-    private var actionBarLabel: String {
-        var parts: [String] = []
-        if viewModel.selectedCount > 0 {
-            parts.append("\(viewModel.selectedCount) app\(viewModel.selectedCount == 1 ? "" : "s")")
-        }
-        if viewModel.selectedBrewCount > 0 {
-            parts.append("\(viewModel.selectedBrewCount) pkg\(viewModel.selectedBrewCount == 1 ? "" : "s")")
-        }
-        if parts.isEmpty {
-            return "\(viewModel.filteredApps.count) apps · \(viewModel.filteredBrewPackages.count) packages"
-        }
-        let totalSize = viewModel.selectedTotalSize + viewModel.selectedBrewTotalSize
-        return parts.joined(separator: " + ") + " · \(Formatters.fileSize(totalSize))"
     }
 
     private func sectionHeader(title: String, count: Int, icon: String) -> some View {

@@ -33,7 +33,7 @@ struct SpeedView: View {
                 Spacer()
             } else if viewModel.isOptimizing || viewModel.optimizationComplete {
                 optimizationView
-            } else if (!viewModel.hostname.isEmpty && viewModel.hostname != "Mac") || !viewModel.loginItems.isEmpty || viewModel.isMacmonInstalled {
+            } else {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
                         DependencyBanner(
@@ -63,22 +63,26 @@ struct SpeedView: View {
                                 .padding(.horizontal, Theme.Spacing.lg)
                         }
 
-                        startupItemsCard
-                            .padding(.horizontal, Theme.Spacing.lg)
+                        if !viewModel.loginItems.isEmpty {
+                            startupItemsCard
+                                .padding(.horizontal, Theme.Spacing.lg)
+                        }
 
-                        systemCard
-                            .padding(.horizontal, Theme.Spacing.lg)
+                        if viewModel.hostname != "Mac" || !viewModel.osVersion.isEmpty {
+                            systemCard
+                                .padding(.horizontal, Theme.Spacing.lg)
+                        }
+
+                        if viewModel.loginItems.isEmpty && viewModel.metrics == nil {
+                            EmptyStateView(
+                                icon: "gauge.with.needle",
+                                message: "Ready to scan",
+                                detail: "Tap Scan below to load system info, startup items, and performance metrics."
+                            )
+                        }
                     }
                     .padding(.vertical, Theme.Spacing.lg)
                 }
-            } else {
-                Spacer()
-                EmptyStateView(
-                    icon: "gauge.with.needle",
-                    message: "Monitor and optimize",
-                    detail: "View live performance metrics, manage startup items, and run system optimizations."
-                )
-                Spacer()
             }
 
             // MARK: - Footer
@@ -94,17 +98,23 @@ struct SpeedView: View {
                     }
                 } else {
                     footerBar {
-                        ghostButton("Rescan") { Task { await viewModel.loadData() } }
-                        ScanButton(title: "Optimize") { Task { await viewModel.optimize() } }
+                        if !viewModel.loginItems.isEmpty {
+                            ghostButton("Rescan") { Task { await viewModel.loadData() } }
+                        }
+                        ScanButton(title: viewModel.loginItems.isEmpty ? "Scan" : "Optimize") {
+                            if viewModel.loginItems.isEmpty {
+                                Task { await viewModel.loadData() }
+                            } else {
+                                Task { await viewModel.optimize() }
+                            }
+                        }
                     }
                 }
             }
         }
         .background(Theme.Colors.background)
         .task {
-            if viewModel.hostname == "Mac" && viewModel.loginItems.isEmpty {
-                await viewModel.loadData()
-            }
+            await viewModel.checkDependencies()
         }
     }
 
