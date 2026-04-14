@@ -9,11 +9,21 @@ actor OptimizationService {
     // MARK: - Non-Privileged Tasks
 
     func rebuildLaunchServices() async throws -> StepResult {
-        let lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-        guard FileManager.default.fileExists(atPath: lsregister) else {
+        let paths = [
+            "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+        ]
+        guard let lsregister = paths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
             return StepResult(detail: "lsregister not found")
         }
-        try await ShellExecutor.shellAsync("\(ShellExecutor.quote(lsregister)) -kill -r -domain local -domain system -domain user")
+        let quoted = ShellExecutor.quote(lsregister)
+        // Garbage collect stale entries first
+        _ = try? await ShellExecutor.shellAsync("\(quoted) -gc", ignoreExitCode: true)
+        // Force rescan all domains; fall back to local+user if system fails
+        let allDomains = try? await ShellExecutor.shellAsync("\(quoted) -r -f -domain local -domain user -domain system")
+        if allDomains == nil {
+            _ = try? await ShellExecutor.shellAsync("\(quoted) -r -f -domain local -domain user", ignoreExitCode: true)
+        }
         return StepResult(detail: "Fixed duplicate Open With entries")
     }
 
@@ -106,7 +116,6 @@ actor OptimizationService {
     }
 
     func refreshDock() async throws -> StepResult {
-        // Clear dock databases
         let dockSupport = NSHomeDirectory() + "/Library/Application Support/Dock"
         let fm = FileManager.default
         if fm.fileExists(atPath: dockSupport) {
@@ -114,6 +123,11 @@ actor OptimizationService {
             for file in files where file.hasSuffix(".db") {
                 try? fm.removeItem(atPath: (dockSupport as NSString).appendingPathComponent(file))
             }
+        }
+        // Touch dock plist to trigger re-read
+        let dockPlist = NSHomeDirectory() + "/Library/Preferences/com.apple.dock.plist"
+        if fm.fileExists(atPath: dockPlist) {
+            try? fm.setAttributes([.modificationDate: Date()], ofItemAtPath: dockPlist)
         }
         try await ShellExecutor.shellAsync("killall Dock", ignoreExitCode: true)
         return StepResult(detail: "Dock cache cleared and restarted")
@@ -163,11 +177,11 @@ actor OptimizationService {
     }
 
     func vacuumAppDatabases() async throws -> StepResult {
-        // Vacuum SQLite databases for Mail, Safari, Messages — skip if app is running
         let apps: [(name: String, dbPaths: [String])] = [
-            ("Mail", [NSHomeDirectory() + "/Library/Mail/V*/MailData/Envelope Index"]),
+            ("Mail", [NSHomeDirectory() + "/Library/Mail"]),
             ("Safari", [NSHomeDirectory() + "/Library/Safari/History.db",
-                        NSHomeDirectory() + "/Library/Safari/Databases/Databases.db"]),
+                        NSHomeDirectory() + "/Library/Safari/Databases/Databases.db",
+                        NSHomeDirectory() + "/Library/Safari/TopSites.db"]),
             ("Messages", [NSHomeDirectory() + "/Library/Messages/chat.db"])
         ]
 
@@ -176,33 +190,55 @@ actor OptimizationService {
         let fm = FileManager.default
 
         for app in apps {
-            // Check if app is running
             let isRunning = (try? ShellExecutor.shell("pgrep -x \(ShellExecutor.quote(app.name))", ignoreExitCode: true))?.isEmpty == false
             if isRunning {
                 skippedApps.append(app.name)
                 continue
             }
 
-            for pattern in app.dbPaths {
-                // Resolve glob patterns
-                let resolvedPaths: [String]
-                if pattern.contains("*") {
-                    let dir = (pattern as NSString).deletingLastPathComponent
-                    let globPart = (pattern as NSString).lastPathComponent
-                    let dirContents = (try? fm.contentsOfDirectory(atPath: dir)) ?? []
-                    resolvedPaths = dirContents
-                        .filter { $0.hasSuffix(globPart.replacingOccurrences(of: "*", with: "")) || globPart == "*" }
-                        .map { (dir as NSString).appendingPathComponent($0) }
+            for pathOrDir in app.dbPaths {
+                var resolvedPaths: [String] = []
+
+                if app.name == "Mail" {
+                    // Resolve ~/Library/Mail/V*/MailData/Envelope Index
+                    let mailDir = pathOrDir
+                    let vDirs = (try? fm.contentsOfDirectory(atPath: mailDir)) ?? []
+                    for vDir in vDirs where vDir.hasPrefix("V") {
+                        let envelopePath = (mailDir as NSString)
+                            .appendingPathComponent(vDir)
+                            .appending("/MailData/Envelope Index")
+                        if fm.fileExists(atPath: envelopePath) {
+                            resolvedPaths.append(envelopePath)
+                        }
+                    }
                 } else {
-                    resolvedPaths = [pattern]
+                    resolvedPaths = [pathOrDir]
                 }
 
                 for dbPath in resolvedPaths {
                     guard fm.fileExists(atPath: dbPath) else { continue }
+
+                    // Verify it's actually a SQLite file
+                    let fileType = (try? ShellExecutor.shell("file -b \(ShellExecutor.quote(dbPath))", ignoreExitCode: true)) ?? ""
+                    guard fileType.contains("SQLite") else { continue }
+
                     let size = FileUtils.fileSize(at: dbPath)
-                    // Only vacuum databases over 10MB
-                    guard size > 10_000_000 else { continue }
-                    if let _ = try? ShellExecutor.shell("sqlite3 \(ShellExecutor.quote(dbPath)) 'PRAGMA integrity_check; VACUUM;'") {
+                    // Skip tiny databases (<10MB) and oversized ones (>100MB)
+                    guard size > 10_000_000 && size < 100_000_000 else { continue }
+
+                    // Check freelist — skip if already compact (<5% free pages)
+                    let pageInfo = (try? ShellExecutor.shell("sqlite3 \(ShellExecutor.quote(dbPath)) 'PRAGMA page_count; PRAGMA freelist_count;'")) ?? ""
+                    let lines = pageInfo.components(separatedBy: "\n").compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                    if lines.count >= 2, lines[0] > 0 {
+                        let freelistPct = (lines[1] * 100) / lines[0]
+                        if freelistPct < 5 { continue }
+                    }
+
+                    // Integrity check before vacuum
+                    let integrity = (try? ShellExecutor.shell("sqlite3 \(ShellExecutor.quote(dbPath)) 'PRAGMA integrity_check;'", ignoreExitCode: true)) ?? ""
+                    guard integrity.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "ok" else { continue }
+
+                    if let _ = try? ShellExecutor.shell("sqlite3 \(ShellExecutor.quote(dbPath)) 'VACUUM;'") {
                         vacuumed += 1
                     }
                 }
@@ -216,10 +252,11 @@ actor OptimizationService {
     }
 
     func rebuildFontCache() async throws -> StepResult {
-        // Skip if browsers are running to avoid cache conflicts
-        let browsers = ["Safari", "Google Chrome", "Firefox", "Brave Browser", "Microsoft Edge", "Arc"]
+        // Skip if browsers are running — clearing font cache while browsers run leaves stale GPU/text caches
+        let browsers = ["Safari", "Google Chrome", "Chromium", "Firefox", "Brave Browser",
+                         "Microsoft Edge", "Arc", "Opera", "Vivaldi", "Zen Browser", "Helium"]
         for browser in browsers {
-            let running = (try? ShellExecutor.shell("pgrep -x \(ShellExecutor.quote(browser))", ignoreExitCode: true))?.isEmpty == false
+            let running = (try? ShellExecutor.shell("pgrep -ix \(ShellExecutor.quote(browser))", ignoreExitCode: true))?.isEmpty == false
             if running {
                 return StepResult(detail: "Skipped — \(browser) is running")
             }
@@ -274,6 +311,8 @@ actor OptimizationService {
         _ = try? ShellExecutor.shell(
             "sqlite3 \(ShellExecutor.quote(ncDb)) \"DELETE FROM record WHERE delivered_date < strftime('%s','now','-30 days'); VACUUM;\""
         )
+        // Restart NotificationCenter so UI reflects changes
+        _ = try? await ShellExecutor.shellAsync("killall NotificationCenter", ignoreExitCode: true)
         let newSize = FileUtils.fileSize(at: ncDb)
         let freed = size - newSize
         return StepResult(detail: freed > 0 ? "Cleaned \(Formatters.fileSize(freed))" : "Optimized")
@@ -294,13 +333,21 @@ actor OptimizationService {
             totalSize += FileUtils.fileSize(at: path)
         }
 
-        // Only clean if > 100MB combined
         guard totalSize > 100_000_000 else {
             return StepResult(detail: "Healthy (\(Formatters.fileSize(totalSize)))")
         }
 
-        // Checkpoint WAL into main db and vacuum
-        _ = try? ShellExecutor.shell("sqlite3 \(ShellExecutor.quote(knowledgeDb)) 'PRAGMA wal_checkpoint(TRUNCATE); VACUUM;'")
+        // Remove WAL/SHM files first (auto-regenerated by SQLite)
+        for path in [walFile, shmFile] {
+            if fm.fileExists(atPath: path) { try? fm.removeItem(atPath: path) }
+        }
+
+        // Delete ZOBJECT entries older than 90 days
+        // CoreTime epoch: seconds since 2001-01-01 (Mac epoch offset from Unix epoch)
+        _ = try? ShellExecutor.shell(
+            "sqlite3 \(ShellExecutor.quote(knowledgeDb)) \"DELETE FROM ZOBJECT WHERE ZCREATIONDATE < (strftime('%s','now','-90 days') - strftime('%s','2001-01-01')); VACUUM;\""
+        )
+
         var newTotal: Int64 = 0
         for path in [knowledgeDb, walFile, shmFile] {
             newTotal += FileUtils.fileSize(at: path)
@@ -310,21 +357,36 @@ actor OptimizationService {
     }
 
     func optimizeSpotlightIndex() async throws -> StepResult {
-        // Check if Spotlight is enabled
         let status = (try? ShellExecutor.shell("mdutil -s /", ignoreExitCode: true)) ?? ""
         guard !status.localizedCaseInsensitiveContains("Indexing disabled") else {
             return StepResult(detail: "Spotlight indexing is disabled")
         }
 
-        // Test search speed — if slow, consider re-index
-        let start = Date()
-        _ = try? ShellExecutor.shell("mdfind 'kMDItemFSName == \"Applications\"'", ignoreExitCode: true)
-        let elapsed = Date().timeIntervalSince(start)
-
-        if elapsed > 3 {
-            return StepResult(detail: "Index slow (\(String(format: "%.1f", elapsed))s) — consider re-indexing in System Settings")
+        // Double-test search speed — both must fail to confirm slowness
+        var slowCount = 0
+        for _ in 0..<2 {
+            let start = Date()
+            _ = try? ShellExecutor.shell("mdfind 'kMDItemFSName == \"Applications\"'", ignoreExitCode: true)
+            if Date().timeIntervalSince(start) > 3 { slowCount += 1 }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
         }
-        return StepResult(detail: "Search index responsive (\(String(format: "%.1f", elapsed))s)")
+
+        guard slowCount >= 2 else {
+            return StepResult(detail: "Search index responsive")
+        }
+
+        // Only rebuild on AC power (reindexing is intensive)
+        let powerInfo = (try? ShellExecutor.shell("pmset -g batt", ignoreExitCode: true)) ?? ""
+        guard powerInfo.contains("AC Power") else {
+            return StepResult(detail: "Index slow — connect AC power to rebuild")
+        }
+
+        // Trigger rebuild
+        try await ShellExecutor.shellAsync(
+            "osascript -e 'do shell script \"mdutil -E /\" with administrator privileges'",
+            ignoreExitCode: true
+        )
+        return StepResult(detail: "Spotlight index rebuild started (1-2 hours in background)")
     }
 
     // MARK: - Privileged Tasks (require admin password)
@@ -337,6 +399,17 @@ actor OptimizationService {
     }
 
     func runPeriodicMaintenance() async throws -> StepResult {
+        // Check if periodic has run recently (within 7 days)
+        let dailyLog = "/var/log/daily.out"
+        if FileManager.default.fileExists(atPath: dailyLog),
+           let attrs = try? FileManager.default.attributesOfItem(atPath: dailyLog),
+           let modDate = attrs[.modificationDate] as? Date {
+            let daysSince = Date().timeIntervalSince(modDate) / 86400
+            if daysSince < 7 {
+                return StepResult(detail: "Already current (\(Int(daysSince))d ago)")
+            }
+        }
+
         try await ShellExecutor.shellAsync(
             "osascript -e 'do shell script \"periodic daily weekly monthly\" with administrator privileges'"
         )
@@ -344,12 +417,37 @@ actor OptimizationService {
     }
 
     func repairDiskPermissions() async throws -> StepResult {
+        let home = NSHomeDirectory()
+        let fm = FileManager.default
+
+        // Check if repair is actually needed
+        var needsRepair = false
+        let checkPaths = [home, home + "/Library", home + "/Library/Preferences"]
+        for path in checkPaths {
+            if fm.fileExists(atPath: path) && !fm.isWritableFile(atPath: path) {
+                needsRepair = true
+                break
+            }
+        }
+        // Check HOME ownership
+        if !needsRepair {
+            let owner = (try? ShellExecutor.shell("stat -f %Su \(ShellExecutor.quote(home))", ignoreExitCode: true))?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let currentUser = ProcessInfo.processInfo.environment["USER"] ?? ""
+            if !owner.isEmpty && !currentUser.isEmpty && owner != currentUser {
+                needsRepair = true
+            }
+        }
+        guard needsRepair else {
+            return StepResult(detail: "Permissions already correct")
+        }
+
         let uid = ProcessInfo.processInfo.environment["UID"] ?? String(getuid())
         try await ShellExecutor.shellAsync(
             "osascript -e 'do shell script \"diskutil resetUserPermissions / \(uid)\" with administrator privileges'",
             ignoreExitCode: true
         )
-        return StepResult(detail: "User directory permissions verified")
+        return StepResult(detail: "User directory permissions repaired")
     }
 
     func purgeMemory() async throws -> StepResult {
@@ -375,6 +473,13 @@ actor OptimizationService {
     }
 
     func flushNetworkStack() async throws -> StepResult {
+        // Only flush if network has issues
+        let routeOk = (try? ShellExecutor.shell("route -n get default", ignoreExitCode: true))?.contains("interface") == true
+        let dnsOk = (try? ShellExecutor.shell("dscacheutil -q host -a name example.com", ignoreExitCode: true))?.contains("ip_address") == true
+        if routeOk && dnsOk {
+            return StepResult(detail: "Network stack healthy — skipped")
+        }
+
         try await ShellExecutor.shellAsync(
             "osascript -e 'do shell script \"route -n flush && arp -n -a -d\" with administrator privileges'",
             ignoreExitCode: true
