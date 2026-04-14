@@ -53,11 +53,12 @@ struct ProtectView: View {
             } else {
                 DependencyBanner(
                     toolName: "ClamAV",
-                    description: "Industry-standard antivirus engine with millions of malware signatures. Without it, only basic pattern checks run.",
+                    description: "Antivirus engine with millions of malware signatures",
                     isInstalled: viewModel.isClamAVInstalled,
                     isInstalling: viewModel.isInstallingClamAV,
                     installError: viewModel.installError,
-                    installAction: { Task { await viewModel.installClamAV() } }
+                    installAction: { Task { await viewModel.installClamAV() } },
+                    version: viewModel.clamavVersion
                 )
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.md)

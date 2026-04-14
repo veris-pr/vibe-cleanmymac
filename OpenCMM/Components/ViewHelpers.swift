@@ -203,61 +203,63 @@ struct DependencyBanner: View {
     let isInstalling: Bool
     let installError: String?
     let installAction: () -> Void
+    var version: String? = nil
 
     var body: some View {
         HStack(spacing: Theme.Spacing.md) {
-            Image(systemName: isInstalled ? "checkmark.circle" : "info.circle")
-                .font(.system(size: 14))
-                .foregroundStyle(isInstalled ? Theme.Colors.success : Theme.Colors.muted)
+            Circle()
+                .fill(isInstalled ? Theme.Colors.success : Theme.Colors.muted.opacity(0.3))
+                .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 2) {
-                if isInstalled {
-                    Text("\(toolName) is active")
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                } else {
-                    Text("Install \(toolName) for better results")
-                        .font(Theme.Font.bodyMedium)
-                        .foregroundStyle(Theme.Colors.foreground)
-                    Text(description)
+                Text(toolName)
+                    .font(Theme.Font.bodyMedium)
+                    .foregroundStyle(Theme.Colors.foreground)
+                Text(description)
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.muted)
+                    .lineLimit(1)
+                if let error = installError {
+                    Text(error)
                         .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted)
-                    if let error = installError {
-                        Text(error)
-                            .font(Theme.Font.caption)
-                            .foregroundStyle(Theme.Colors.destructive)
-                    }
+                        .foregroundStyle(Theme.Colors.destructive)
+                        .lineLimit(2)
                 }
             }
 
             Spacer()
 
-            if !isInstalled {
-                Button(action: installAction) {
-                    HStack(spacing: 4) {
-                        if isInstalling {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                        Text(isInstalling ? "Installing..." : "Install")
-                            .font(Theme.Font.bodyMedium)
+            if isInstalled {
+                if let version {
+                    Text(version)
+                        .font(Theme.Font.monoSmall)
+                        .foregroundStyle(Theme.Colors.muted)
+                        .lineLimit(1)
+                }
+            } else {
+                if isInstalling {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button("Install") {
+                        installAction()
                     }
+                    .font(Theme.Font.bodyMedium)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(isInstalling ? Color.primary.opacity(0.4) : Color.primary.opacity(0.85))
+                    .padding(.vertical, 5)
+                    .background(Color.primary.opacity(0.85))
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .disabled(isInstalling)
             }
         }
         .padding(Theme.Spacing.md)
-        .background(isInstalled ? Theme.Colors.success.opacity(0.05) : Theme.Colors.subtle)
+        .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.md)
-                .stroke(isInstalled ? Theme.Colors.success.opacity(0.2) : Theme.Colors.border, lineWidth: 1)
+                .stroke(Theme.Colors.border, lineWidth: 1)
         )
     }
 }

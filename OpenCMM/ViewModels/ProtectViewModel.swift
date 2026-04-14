@@ -13,6 +13,7 @@ class ProtectViewModel: ObservableObject {
     @Published var showConfirmation = false
     @Published var auditResult: AuditResult?
     @Published var isOsqueryInstalled = false
+    @Published var clamavVersion: String?
 
     var scanStore: ScanStore?
 
@@ -51,6 +52,7 @@ class ProtectViewModel: ObservableObject {
     func checkDependencies() async {
         isClamAVInstalled = await dependencyManager.isInstalled(.clamav)
         isOsqueryInstalled = await dependencyManager.isInstalled(.osquery)
+        clamavVersion = await dependencyManager.status(for: .clamav).version
     }
 
     func installClamAV() async {

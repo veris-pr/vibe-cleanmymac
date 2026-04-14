@@ -46,7 +46,7 @@ struct UpdateView: View {
                 VStack(spacing: Theme.Spacing.sm) {
                     DependencyBanner(
                         toolName: "Homebrew",
-                        description: "Package manager required for updating Homebrew apps and installing tools.",
+                        description: "Package manager for macOS CLI tools and apps",
                         isInstalled: viewModel.isHomebrewInstalled,
                         isInstalling: viewModel.isInstallingHomebrew,
                         installError: viewModel.installError,
@@ -55,11 +55,12 @@ struct UpdateView: View {
 
                     DependencyBanner(
                         toolName: "mas",
-                        description: "Mac App Store CLI for checking and updating App Store apps.",
+                        description: "Mac App Store CLI for checking and updating apps",
                         isInstalled: viewModel.isMasInstalled,
                         isInstalling: viewModel.isInstallingMas,
                         installError: viewModel.installError,
-                        installAction: { Task { await viewModel.installMas() } }
+                        installAction: { Task { await viewModel.installMas() } },
+                        version: viewModel.masVersion
                     )
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

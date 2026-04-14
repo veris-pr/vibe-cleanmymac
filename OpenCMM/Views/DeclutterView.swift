@@ -55,20 +55,22 @@ struct DeclutterView: View {
                 VStack(spacing: Theme.Spacing.sm) {
                     DependencyBanner(
                         toolName: "fclones",
-                        description: "High-performance duplicate file finder. Without it, a slower native hash-based scanner is used.",
+                        description: "High-performance duplicate file finder",
                         isInstalled: viewModel.isFclonesInstalled,
                         isInstalling: viewModel.isInstallingFclones,
                         installError: viewModel.installError,
-                        installAction: { Task { await viewModel.installFclones() } }
+                        installAction: { Task { await viewModel.installFclones() } },
+                        version: viewModel.fclonesVersion
                     )
 
                     DependencyBanner(
                         toolName: "czkawka",
-                        description: "Similar images, videos, and temp file detection. Enables the Similar Images and Temp Files tabs.",
+                        description: "Similar images, videos, and temp file detection",
                         isInstalled: viewModel.isCzkawkaInstalled,
                         isInstalling: viewModel.isInstallingCzkawka,
                         installError: viewModel.installError,
-                        installAction: { Task { await viewModel.installCzkawka() } }
+                        installAction: { Task { await viewModel.installCzkawka() } },
+                        version: viewModel.czkawkaVersion
                     )
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

@@ -18,6 +18,8 @@ class DeclutterViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showConfirmation = false
     @Published var largeSortOrder: LargeSortOrder = .size
+    @Published var fclonesVersion: String?
+    @Published var czkawkaVersion: String?
 
     var scanStore: ScanStore?
 
@@ -65,6 +67,8 @@ class DeclutterViewModel: ObservableObject {
     func checkDependencies() async {
         isFclonesInstalled = await dependencyManager.isInstalled(.fclones)
         isCzkawkaInstalled = await dependencyManager.isInstalled(.czkawka)
+        fclonesVersion = await dependencyManager.status(for: .fclones).version
+        czkawkaVersion = await dependencyManager.status(for: .czkawka).version
     }
 
     func installFclones() async {

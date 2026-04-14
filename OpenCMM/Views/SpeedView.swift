@@ -36,29 +36,27 @@ struct SpeedView: View {
             } else if (!viewModel.hostname.isEmpty && viewModel.hostname != "Mac") || !viewModel.loginItems.isEmpty || viewModel.isMacmonInstalled {
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
-                        if !viewModel.isMoleInstalled {
-                            DependencyBanner(
-                                toolName: "Mole",
-                                description: "System optimizer — deep clean, optimize, and analyze your Mac. Provides enhanced optimization with 14+ tasks.",
-                                isInstalled: viewModel.isMoleInstalled,
-                                isInstalling: viewModel.isInstallingMole,
-                                installError: viewModel.installError,
-                                installAction: { Task { await viewModel.installMole() } }
-                            )
-                            .padding(.horizontal, Theme.Spacing.lg)
-                        }
+                        DependencyBanner(
+                            toolName: "Mole",
+                            description: "Deep clean, optimize, and analyze your Mac",
+                            isInstalled: viewModel.isMoleInstalled,
+                            isInstalling: viewModel.isInstallingMole,
+                            installError: viewModel.installError,
+                            installAction: { Task { await viewModel.installMole() } },
+                            version: viewModel.moleVersion
+                        )
+                        .padding(.horizontal, Theme.Spacing.lg)
 
-                        if !viewModel.isMacmonInstalled {
-                            DependencyBanner(
-                                toolName: "macmon",
-                                description: "Sudoless performance monitor for Apple Silicon. Provides live CPU, GPU, RAM, and temperature metrics.",
-                                isInstalled: viewModel.isMacmonInstalled,
-                                isInstalling: viewModel.isInstallingMacmon,
-                                installError: viewModel.installError,
-                                installAction: { Task { await viewModel.installMacmon() } }
-                            )
-                            .padding(.horizontal, Theme.Spacing.lg)
-                        }
+                        DependencyBanner(
+                            toolName: "macmon",
+                            description: "Sudoless performance monitor for Apple Silicon",
+                            isInstalled: viewModel.isMacmonInstalled,
+                            isInstalling: viewModel.isInstallingMacmon,
+                            installError: viewModel.installError,
+                            installAction: { Task { await viewModel.installMacmon() } },
+                            version: viewModel.macmonVersion
+                        )
+                        .padding(.horizontal, Theme.Spacing.lg)
 
                         if let metrics = viewModel.metrics {
                             metricsCard(metrics)

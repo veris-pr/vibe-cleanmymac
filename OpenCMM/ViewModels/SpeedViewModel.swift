@@ -15,12 +15,14 @@ class SpeedViewModel: ObservableObject {
     @Published var isInstallingMacmon = false
     @Published var installError: String?
     @Published var isMonitoring = false
+    @Published var macmonVersion: String?
 
     // Mole
     @Published var isMoleInstalled = false
     @Published var isInstallingMole = false
     @Published var moleHealthScore: Int?
     @Published var moleHealthMsg: String?
+    @Published var moleVersion: String?
 
     // Optimization
     @Published var isOptimizing = false
@@ -45,6 +47,8 @@ class SpeedViewModel: ObservableObject {
         uptime = ProcessInfo.processInfo.systemUptime
         isMacmonInstalled = await dependencyManager.isInstalled(.macmon)
         isMoleInstalled = await dependencyManager.isInstalled(.mole)
+        macmonVersion = await dependencyManager.status(for: .macmon).version
+        moleVersion = await dependencyManager.status(for: .mole).version
 
         // Load mole health status if available
         if isMoleInstalled {

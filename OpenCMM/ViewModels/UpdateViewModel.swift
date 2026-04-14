@@ -13,6 +13,7 @@ class UpdateViewModel: ObservableObject {
     @Published var isInstallingMas = false
     @Published var installError: String?
     @Published var showConfirmation = false
+    @Published var masVersion: String?
 
     var scanStore: ScanStore?
 
@@ -33,6 +34,7 @@ class UpdateViewModel: ObservableObject {
     func checkDependencies() async {
         isHomebrewInstalled = await dependencyManager.isHomebrewInstalled
         isMasInstalled = await dependencyManager.isInstalled(.mas)
+        masVersion = await dependencyManager.status(for: .mas).version
     }
 
     func installHomebrew() async {
