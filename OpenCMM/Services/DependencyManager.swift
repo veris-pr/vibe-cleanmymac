@@ -91,6 +91,7 @@ actor DependencyManager {
         case "osquery": return "osqueryi"
         case "czkawka": return "czkawka_cli"
         case "mole": return "mo"
+        case "gdu": return "gdu-go"
         default: return tool.id
         }
     }
