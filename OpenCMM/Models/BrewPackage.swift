@@ -8,6 +8,7 @@ struct BrewPackage: Identifiable {
     let description: String
     let size: Int64
     let dependencies: [String]
+    var dependents: [String] = []
     let isLeaf: Bool
     let installedOnRequest: Bool
 }

@@ -269,6 +269,19 @@ actor UninstallService {
         }
 
         logger.info("Found \(packages.count) Homebrew packages (\(leaves.count) leaves)")
+        
+        // Build reverse-dependency map (dependents)
+        let packageNames = Set(packages.map(\.name))
+        var dependentsMap: [String: [String]] = [:]
+        for pkg in packages {
+            for dep in pkg.dependencies where packageNames.contains(dep) {
+                dependentsMap[dep, default: []].append(pkg.name)
+            }
+        }
+        for i in packages.indices {
+            packages[i].dependents = (dependentsMap[packages[i].name] ?? []).sorted()
+        }
+
         return packages.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 

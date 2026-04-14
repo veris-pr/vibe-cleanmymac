@@ -24,6 +24,7 @@ class UninstallViewModel: ObservableObject {
     @Published var selectedBrewIds: Set<String> = []
     @Published var showBrewConfirmation = false
     @Published var brewFilter: BrewFilter = .leaves
+    @Published var expandedBrewIds: Set<String> = []
 
     private let service = UninstallService()
 
@@ -77,6 +78,18 @@ class UninstallViewModel: ObservableObject {
 
     func isBrewSelected(_ pkg: BrewPackage) -> Bool {
         selectedBrewIds.contains(pkg.id)
+    }
+
+    func toggleBrewExpanded(_ pkg: BrewPackage) {
+        if expandedBrewIds.contains(pkg.id) {
+            expandedBrewIds.remove(pkg.id)
+        } else {
+            expandedBrewIds.insert(pkg.id)
+        }
+    }
+
+    func isBrewExpanded(_ pkg: BrewPackage) -> Bool {
+        expandedBrewIds.contains(pkg.id)
     }
 
     func loadApps() async {

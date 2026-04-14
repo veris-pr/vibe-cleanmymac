@@ -489,50 +489,135 @@ struct UninstallView: View {
     }
 
     private func brewRow(_ pkg: BrewPackage) -> some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Toggle("", isOn: Binding(
-                get: { viewModel.isBrewSelected(pkg) },
-                set: { _ in viewModel.toggleBrewPackage(pkg) }
-            ))
-            .toggleStyle(.checkbox)
-            .labelsHidden()
+        VStack(spacing: 0) {
+            HStack(spacing: Theme.Spacing.sm) {
+                Toggle("", isOn: Binding(
+                    get: { viewModel.isBrewSelected(pkg) },
+                    set: { _ in viewModel.toggleBrewPackage(pkg) }
+                ))
+                .toggleStyle(.checkbox)
+                .labelsHidden()
 
-            HStack(spacing: Theme.Spacing.md) {
-                Image(systemName: "shippingbox")
-                    .font(.title2)
-                    .foregroundStyle(Theme.Colors.secondary)
-                    .frame(width: 32, height: 32)
+                HStack(spacing: Theme.Spacing.md) {
+                    Image(systemName: "shippingbox")
+                        .font(.title2)
+                        .foregroundStyle(Theme.Colors.secondary)
+                        .frame(width: 32, height: 32)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: Theme.Spacing.xs) {
-                        Text(pkg.name)
-                            .font(Theme.Font.bodyMedium)
-                            .foregroundStyle(Theme.Colors.foreground)
-                            .lineLimit(1)
-                        Text(pkg.version)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: Theme.Spacing.xs) {
+                            Text(pkg.name)
+                                .font(Theme.Font.bodyMedium)
+                                .foregroundStyle(Theme.Colors.foreground)
+                                .lineLimit(1)
+                            Text(pkg.version)
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.muted)
+                        }
+                        Text(pkg.description)
                             .font(Theme.Font.caption)
                             .foregroundStyle(Theme.Colors.muted)
+                            .lineLimit(1)
                     }
-                    Text(pkg.description)
+
+                    Spacer()
+
+                    if !pkg.dependencies.isEmpty || !pkg.dependents.isEmpty {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.toggleBrewExpanded(pkg)
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Text("\(pkg.dependencies.count) dep\(pkg.dependencies.count == 1 ? "" : "s")")
+                                    .font(Theme.Font.caption)
+                                    .foregroundStyle(Theme.Colors.muted)
+                                Image(systemName: viewModel.isBrewExpanded(pkg) ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(Theme.Colors.muted)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text(Formatters.fileSize(pkg.size))
+                        .font(Theme.Font.monoSmall)
+                        .foregroundStyle(Theme.Colors.secondary)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.sm)
+
+            if viewModel.isBrewExpanded(pkg) {
+                brewDetailPanel(pkg)
+            }
+        }
+    }
+
+    private func brewDetailPanel(_ pkg: BrewPackage) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            if !pkg.dependencies.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Depends on (\(pkg.dependencies.count))")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.secondary)
+                    depTagFlow(pkg.dependencies)
+                }
+            }
+
+            if !pkg.dependents.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Required by (\(pkg.dependents.count))")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.secondary)
+                    depTagFlow(pkg.dependents)
+                }
+            }
+
+            if pkg.dependencies.isEmpty && pkg.dependents.isEmpty {
+                Text("No dependencies")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.muted)
+            }
+
+            HStack(spacing: Theme.Spacing.md) {
+                if pkg.installedOnRequest {
+                    Label("Installed on request", systemImage: "checkmark.circle")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.success)
+                } else {
+                    Label("Installed as dependency", systemImage: "link")
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.muted)
-                        .lineLimit(1)
                 }
-
-                Spacer()
-
-                if !pkg.dependencies.isEmpty {
-                    Text("\(pkg.dependencies.count) dep\(pkg.dependencies.count == 1 ? "" : "s")")
+                if pkg.isLeaf {
+                    Label("Top-level", systemImage: "leaf")
                         .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.muted)
+                        .foregroundStyle(Theme.Colors.success)
                 }
-
-                Text(Formatters.fileSize(pkg.size))
-                    .font(Theme.Font.monoSmall)
-                    .foregroundStyle(Theme.Colors.secondary)
             }
         }
         .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.leading, 52)
         .padding(.vertical, Theme.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.cardBackground.opacity(0.5))
+    }
+
+    private func depTagFlow(_ names: [String]) -> some View {
+        FlowLayout(spacing: 4) {
+            ForEach(names, id: \.self) { name in
+                Text(name)
+                    .font(Theme.Font.monoSmall)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Theme.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Radius.sm)
+                            .stroke(Theme.Colors.border, lineWidth: 1)
+                    )
+            }
+        }
     }
 }
