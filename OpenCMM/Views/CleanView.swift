@@ -20,6 +20,18 @@ struct CleanView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            DependencyBanner(
+                toolName: "Mole",
+                description: "Deep clean, optimize, and analyze your Mac",
+                isInstalled: viewModel.isMoleInstalled,
+                isInstalling: viewModel.isInstallingMole,
+                installError: viewModel.installError,
+                installAction: { Task { await viewModel.installMole() } },
+                version: viewModel.moleVersion
+            )
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.md)
+
             // MARK: - Body
             if viewModel.isScanning {
                 Spacer()
@@ -75,6 +87,7 @@ struct CleanView: View {
         .background(Theme.Colors.background)
         .task {
             viewModel.loadFromStore()
+            await viewModel.checkDependencies()
         }
         .confirmationDialog(
             "Remove Selected Items",

@@ -10,10 +10,15 @@ class CleanViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showConfirmation = false
     @Published var expandedSections: Set<UUID> = []
+    @Published var isMoleInstalled = false
+    @Published var isInstallingMole = false
+    @Published var installError: String?
+    @Published var moleVersion: String?
 
     var scanStore: ScanStore?
 
     private let service = CleaningService()
+    private let dependencyManager = DependencyManager.shared
     private var scanTask: Task<Void, Never>?
 
     var totalSize: Int64 {
@@ -32,6 +37,24 @@ class CleanViewModel: ObservableObject {
         scanResults = store.cleanResults
         expandedSections = Set(scanResults.map(\.id))
         scanComplete = true
+    }
+
+    func checkDependencies() async {
+        isMoleInstalled = await dependencyManager.isInstalled(.mole)
+        moleVersion = await dependencyManager.status(for: .mole).version
+    }
+
+    func installMole() async {
+        isInstallingMole = true
+        installError = nil
+        do {
+            try await dependencyManager.install(.mole)
+            isMoleInstalled = true
+            moleVersion = await dependencyManager.status(for: .mole).version
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingMole = false
     }
 
     func startScan() {

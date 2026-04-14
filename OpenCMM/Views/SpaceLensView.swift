@@ -20,6 +20,30 @@ struct SpaceLensView: View {
                     .padding(.top, Theme.Spacing.md)
             }
 
+            VStack(spacing: Theme.Spacing.sm) {
+                DependencyBanner(
+                    toolName: "gdu",
+                    description: "Fast disk usage analyzer with console interface",
+                    isInstalled: viewModel.isGduInstalled,
+                    isInstalling: viewModel.isInstallingGdu,
+                    installError: viewModel.installError,
+                    installAction: { Task { await viewModel.installGdu() } },
+                    version: viewModel.gduVersion
+                )
+
+                DependencyBanner(
+                    toolName: "Mole",
+                    description: "Deep clean, optimize, and analyze your Mac",
+                    isInstalled: viewModel.isMoleInstalled,
+                    isInstalling: viewModel.isInstallingMole,
+                    installError: viewModel.installError,
+                    installAction: { Task { await viewModel.installMole() } },
+                    version: viewModel.moleVersion
+                )
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.md)
+
             // MARK: - Body
             if viewModel.isScanning && viewModel.currentNode == nil {
                 Spacer()
@@ -96,6 +120,7 @@ struct SpaceLensView: View {
             }
         }
         .background(Theme.Colors.background)
+        .task { await viewModel.checkDependencies() }
     }
 
     // MARK: - Breadcrumbs

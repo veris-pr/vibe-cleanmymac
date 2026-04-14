@@ -50,7 +50,8 @@ class SettingsViewModel: ObservableObject {
         "fclones": "Duplicates",
         "czkawka": "Duplicates",
         "macmon": "Boost",
-        "mole": "Boost",
+        "mole": "Boost / Sweep / Disk Map",
+        "gdu": "Disk Map",
     ]
 
     func refresh() async {

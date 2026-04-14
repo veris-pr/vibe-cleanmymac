@@ -6,8 +6,16 @@ class SpaceLensViewModel: ObservableObject {
     @Published var isScanning = false
     @Published var errorMessage: String?
     @Published var navigationPath: [DiskNode] = []
+    @Published var isGduInstalled = false
+    @Published var isMoleInstalled = false
+    @Published var isInstallingGdu = false
+    @Published var isInstallingMole = false
+    @Published var installError: String?
+    @Published var gduVersion: String?
+    @Published var moleVersion: String?
 
     private let service = SpaceLensService()
+    private let dependencyManager = DependencyManager.shared
     private var scanTask: Task<Void, Never>?
 
     /// Current directory being viewed (root or a subdirectory).
@@ -20,6 +28,39 @@ class SpaceLensViewModel: ObservableObject {
             return [root] + navigationPath
         }
         return []
+    }
+
+    func checkDependencies() async {
+        isGduInstalled = await dependencyManager.isInstalled(.gdu)
+        isMoleInstalled = await dependencyManager.isInstalled(.mole)
+        gduVersion = await dependencyManager.status(for: .gdu).version
+        moleVersion = await dependencyManager.status(for: .mole).version
+    }
+
+    func installGdu() async {
+        isInstallingGdu = true
+        installError = nil
+        do {
+            try await dependencyManager.install(.gdu)
+            isGduInstalled = true
+            gduVersion = await dependencyManager.status(for: .gdu).version
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingGdu = false
+    }
+
+    func installMole() async {
+        isInstallingMole = true
+        installError = nil
+        do {
+            try await dependencyManager.install(.mole)
+            isMoleInstalled = true
+            moleVersion = await dependencyManager.status(for: .mole).version
+        } catch {
+            installError = error.localizedDescription
+        }
+        isInstallingMole = false
     }
 
     func startScan(path: String? = nil) {
