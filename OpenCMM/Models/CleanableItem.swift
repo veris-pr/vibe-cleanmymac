@@ -23,7 +23,12 @@ enum CleanCategory: String, CaseIterable {
     case browserCache = "Browser Cache"
     case systemLogs = "System Logs"
     case userLogs = "User Logs"
+    case crashReports = "Crash Reports"
     case xcodeData = "Xcode Data"
+    case appCache = "App Cache"
+    case devCache = "Developer Cache"
+    case mailDownloads = "Mail Downloads"
+    case macOSInstaller = "macOS Installer"
     case trash = "Trash"
 
     var icon: String {
@@ -33,7 +38,12 @@ enum CleanCategory: String, CaseIterable {
         case .browserCache: return "globe"
         case .systemLogs: return "doc.text"
         case .userLogs: return "doc.text.fill"
+        case .crashReports: return "exclamationmark.triangle"
         case .xcodeData: return "hammer"
+        case .appCache: return "app.badge.fill"
+        case .devCache: return "terminal"
+        case .mailDownloads: return "envelope"
+        case .macOSInstaller: return "arrow.down.app"
         case .trash: return "trash"
         }
     }
