@@ -131,7 +131,7 @@ actor OptimizationService {
             if let attrs = try? fm.attributesOfItem(atPath: path),
                let modDate = attrs[.modificationDate] as? Date,
                modDate < threshold {
-                let size = FileUtils.directorySize(path)
+                let size = FileUtils.directorySize(at: path)
                 try? fm.removeItem(atPath: path)
                 cleaned += 1
                 freedBytes += size

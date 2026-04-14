@@ -69,6 +69,18 @@ struct UninstallView: View {
         } message: {
             Text("Selected apps and their leftover files will be moved to Trash.")
         }
+        .confirmationDialog(
+            "Uninstall \(viewModel.selectedBrewCount) Package\(viewModel.selectedBrewCount == 1 ? "" : "s")",
+            isPresented: $viewModel.showBrewConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Uninstall \(viewModel.selectedBrewCount) package\(viewModel.selectedBrewCount == 1 ? "" : "s")", role: .destructive) {
+                Task { await viewModel.uninstallSelectedBrew() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Selected Homebrew packages will be removed via brew uninstall. Dependencies not used by other packages will also be removed.")
+        }
     }
 
     // MARK: - App List
@@ -81,7 +93,7 @@ struct UninstallView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Theme.Colors.muted)
                         .font(Theme.Font.bodySmall)
-                    TextField("Search apps...", text: Binding(
+                    TextField("Search apps & packages...", text: Binding(
                         get: { viewModel.searchText },
                         set: { viewModel.updateSearch($0) }
                     ))
@@ -120,8 +132,8 @@ struct UninstallView: View {
 
             Divider()
 
-            // App list
-            if viewModel.filteredApps.isEmpty {
+            // App list + Brew packages
+            if viewModel.filteredApps.isEmpty && viewModel.filteredBrewPackages.isEmpty {
                 Spacer()
                 EmptyStateView(
                     icon: "app.dashed",
@@ -132,9 +144,30 @@ struct UninstallView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(viewModel.filteredApps) { app in
-                            appRow(app)
-                            Divider().padding(.leading, 72)
+                        // Software section
+                        if !viewModel.filteredApps.isEmpty {
+                            sectionHeader(
+                                title: "Software",
+                                count: viewModel.filteredApps.count,
+                                icon: "app.fill"
+                            )
+                            ForEach(viewModel.filteredApps) { app in
+                                appRow(app)
+                                Divider().padding(.leading, 72)
+                            }
+                        }
+
+                        // Brew packages section
+                        if !viewModel.filteredBrewPackages.isEmpty {
+                            brewPackagesSection
+                        } else if viewModel.isLoadingBrew {
+                            HStack(spacing: Theme.Spacing.sm) {
+                                ProgressView().controlSize(.small)
+                                Text("Loading Homebrew packages...")
+                                    .font(Theme.Font.caption)
+                                    .foregroundStyle(Theme.Colors.muted)
+                            }
+                            .padding(Theme.Spacing.lg)
                         }
                     }
                     .padding(.vertical, Theme.Spacing.xs)
@@ -143,20 +176,53 @@ struct UninstallView: View {
 
             // Action bar
             actionBar(
-                label: viewModel.selectedCount > 0
-                    ? "\(viewModel.selectedCount) app\(viewModel.selectedCount == 1 ? "" : "s") · \(Formatters.fileSize(viewModel.selectedTotalSize))"
-                    : "\(viewModel.filteredApps.count) apps",
+                label: actionBarLabel,
                 buttonTitle: "Uninstall",
                 isWorking: viewModel.isUninstalling,
                 action: {
                     if viewModel.selectedCount > 0 {
                         viewModel.showBatchConfirmation = true
+                    } else if viewModel.selectedBrewCount > 0 {
+                        viewModel.showBrewConfirmation = true
                     }
                 },
                 secondaryTitle: "Rescan",
                 secondaryAction: { Task { await viewModel.loadApps() } }
             )
         }
+    }
+
+    private var actionBarLabel: String {
+        var parts: [String] = []
+        if viewModel.selectedCount > 0 {
+            parts.append("\(viewModel.selectedCount) app\(viewModel.selectedCount == 1 ? "" : "s")")
+        }
+        if viewModel.selectedBrewCount > 0 {
+            parts.append("\(viewModel.selectedBrewCount) pkg\(viewModel.selectedBrewCount == 1 ? "" : "s")")
+        }
+        if parts.isEmpty {
+            return "\(viewModel.filteredApps.count) apps · \(viewModel.filteredBrewPackages.count) packages"
+        }
+        let totalSize = viewModel.selectedTotalSize + viewModel.selectedBrewTotalSize
+        return parts.joined(separator: " + ") + " · \(Formatters.fileSize(totalSize))"
+    }
+
+    private func sectionHeader(title: String, count: Int, icon: String) -> some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(Theme.Font.caption)
+                .foregroundStyle(Theme.Colors.secondary)
+            Text(title)
+                .font(Theme.Font.bodyMedium)
+                .foregroundStyle(Theme.Colors.foreground)
+            Text("(\(count))")
+                .font(Theme.Font.caption)
+                .foregroundStyle(Theme.Colors.muted)
+            Spacer()
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.top, Theme.Spacing.md)
+        .padding(.bottom, Theme.Spacing.xs)
     }
 
     private func appRow(_ app: InstalledApp) -> some View {
@@ -383,5 +449,90 @@ struct UninstallView: View {
         case .savedState: return "bookmark"
         case .other: return "ellipsis.circle"
         }
+    }
+
+    // MARK: - Brew Packages
+
+    private var brewPackagesSection: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: "mug")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.secondary)
+                Text("Homebrew Packages")
+                    .font(Theme.Font.bodyMedium)
+                    .foregroundStyle(Theme.Colors.foreground)
+                Text("(\(viewModel.filteredBrewPackages.count))")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.muted)
+                Spacer()
+                Picker("", selection: Binding(
+                    get: { viewModel.brewFilter },
+                    set: { viewModel.updateBrewFilter($0) }
+                )) {
+                    ForEach(UninstallViewModel.BrewFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 160)
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.md)
+            .padding(.bottom, Theme.Spacing.xs)
+
+            ForEach(viewModel.filteredBrewPackages) { pkg in
+                brewRow(pkg)
+                Divider().padding(.leading, 72)
+            }
+        }
+    }
+
+    private func brewRow(_ pkg: BrewPackage) -> some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Toggle("", isOn: Binding(
+                get: { viewModel.isBrewSelected(pkg) },
+                set: { _ in viewModel.toggleBrewPackage(pkg) }
+            ))
+            .toggleStyle(.checkbox)
+            .labelsHidden()
+
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "shippingbox")
+                    .font(.title2)
+                    .foregroundStyle(Theme.Colors.secondary)
+                    .frame(width: 32, height: 32)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        Text(pkg.name)
+                            .font(Theme.Font.bodyMedium)
+                            .foregroundStyle(Theme.Colors.foreground)
+                            .lineLimit(1)
+                        Text(pkg.version)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.muted)
+                    }
+                    Text(pkg.description)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if !pkg.dependencies.isEmpty {
+                    Text("\(pkg.dependencies.count) dep\(pkg.dependencies.count == 1 ? "" : "s")")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.muted)
+                }
+
+                Text(Formatters.fileSize(pkg.size))
+                    .font(Theme.Font.monoSmall)
+                    .foregroundStyle(Theme.Colors.secondary)
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.sm)
     }
 }

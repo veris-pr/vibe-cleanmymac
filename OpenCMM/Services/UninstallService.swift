@@ -212,4 +212,67 @@ actor UninstallService {
         }
         return results
     }
+
+    // MARK: - Homebrew Packages
+
+    func listBrewPackages() async -> [BrewPackage] {
+        guard await DependencyManager.shared.isHomebrewInstalled else { return [] }
+
+        // Get leaves (top-level, not depended on by others)
+        let leavesStr = (try? await ShellExecutor.shellAsync("brew leaves")) ?? ""
+        let leaves = Set(leavesStr.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
+
+        // Get full info via JSON
+        guard let jsonStr = try? await ShellExecutor.shellAsync("brew info --json=v2 --installed") else { return [] }
+        guard let data = jsonStr.data(using: .utf8) else { return [] }
+
+        struct BrewJSON: Decodable {
+            let formulae: [Formula]
+            struct Formula: Decodable {
+                let name: String
+                let desc: String?
+                let dependencies: [String]?
+                let installed: [Installed]?
+                struct Installed: Decodable {
+                    let version: String
+                    let installed_on_request: Bool
+                }
+            }
+        }
+
+        guard let brew = try? JSONDecoder().decode(BrewJSON.self, from: data) else { return [] }
+
+        // Detect cellar location
+        let cellarBase: String
+        if FileManager.default.fileExists(atPath: "/opt/homebrew/Cellar") {
+            cellarBase = "/opt/homebrew/Cellar"
+        } else {
+            cellarBase = "/usr/local/Cellar"
+        }
+
+        var packages: [BrewPackage] = []
+        for formula in brew.formulae {
+            guard let inst = formula.installed?.first else { continue }
+            let cellarPath = "\(cellarBase)/\(formula.name)"
+            let size = FileUtils.directorySize(at: cellarPath)
+
+            packages.append(BrewPackage(
+                id: formula.name,
+                name: formula.name,
+                version: inst.version,
+                description: formula.desc ?? "",
+                size: size,
+                dependencies: formula.dependencies ?? [],
+                isLeaf: leaves.contains(formula.name),
+                installedOnRequest: inst.installed_on_request
+            ))
+        }
+
+        logger.info("Found \(packages.count) Homebrew packages (\(leaves.count) leaves)")
+        return packages.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    func uninstallBrewPackage(_ pkg: BrewPackage) async throws {
+        try await ShellExecutor.shellAsync("brew uninstall \(ShellExecutor.quote(pkg.name))")
+    }
 }

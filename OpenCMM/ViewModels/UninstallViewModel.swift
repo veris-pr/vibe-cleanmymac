@@ -17,11 +17,24 @@ class UninstallViewModel: ObservableObject {
     @Published var sortOrder: SortOrder = .name
     @Published var selectedAppPaths: Set<String> = []
 
+    // Brew packages
+    @Published var brewPackages: [BrewPackage] = []
+    @Published var filteredBrewPackages: [BrewPackage] = []
+    @Published var isLoadingBrew = false
+    @Published var selectedBrewIds: Set<String> = []
+    @Published var showBrewConfirmation = false
+    @Published var brewFilter: BrewFilter = .leaves
+
     private let service = UninstallService()
 
     enum SortOrder: String, CaseIterable {
         case name = "Name"
         case size = "Size"
+    }
+
+    enum BrewFilter: String, CaseIterable {
+        case leaves = "Top-level"
+        case all = "All"
     }
 
     var totalLeftoverSize: Int64 {
@@ -32,6 +45,13 @@ class UninstallViewModel: ObservableObject {
 
     var selectedTotalSize: Int64 {
         filteredApps.filter { selectedAppPaths.contains($0.path) }
+            .reduce(0) { $0 + $1.size }
+    }
+
+    var selectedBrewCount: Int { selectedBrewIds.count }
+
+    var selectedBrewTotalSize: Int64 {
+        brewPackages.filter { selectedBrewIds.contains($0.id) }
             .reduce(0) { $0 + $1.size }
     }
 
@@ -47,12 +67,30 @@ class UninstallViewModel: ObservableObject {
         selectedAppPaths.contains(app.path)
     }
 
+    func toggleBrewPackage(_ pkg: BrewPackage) {
+        if selectedBrewIds.contains(pkg.id) {
+            selectedBrewIds.remove(pkg.id)
+        } else {
+            selectedBrewIds.insert(pkg.id)
+        }
+    }
+
+    func isBrewSelected(_ pkg: BrewPackage) -> Bool {
+        selectedBrewIds.contains(pkg.id)
+    }
+
     func loadApps() async {
         isLoading = true
         errorMessage = nil
         apps = await service.listApps()
         applyFilter()
         isLoading = false
+
+        // Load brew packages in background
+        isLoadingBrew = true
+        brewPackages = await service.listBrewPackages()
+        applyBrewFilter()
+        isLoadingBrew = false
     }
 
     func selectApp(_ app: InstalledApp) async {
@@ -108,14 +146,43 @@ class UninstallViewModel: ObservableObject {
         isUninstalling = false
     }
 
+    func uninstallSelectedBrew() async {
+        isUninstalling = true
+        errorMessage = nil
+        var removed = 0
+
+        let pkgsToRemove = brewPackages.filter { selectedBrewIds.contains($0.id) }
+        for pkg in pkgsToRemove {
+            do {
+                try await service.uninstallBrewPackage(pkg)
+                brewPackages.removeAll { $0.id == pkg.id }
+                removed += 1
+            } catch {
+                errorMessage = "Failed to remove \(pkg.name): \(error.localizedDescription)"
+                break
+            }
+        }
+
+        selectedBrewIds.removeAll()
+        applyBrewFilter()
+        isUninstalling = false
+    }
+
     func updateSearch(_ text: String) {
         searchText = text
         applyFilter()
+        applyBrewFilter()
     }
 
     func updateSort(_ order: SortOrder) {
         sortOrder = order
         applyFilter()
+        applyBrewFilter()
+    }
+
+    func updateBrewFilter(_ filter: BrewFilter) {
+        brewFilter = filter
+        applyBrewFilter()
     }
 
     private func applyFilter() {
@@ -136,5 +203,29 @@ class UninstallViewModel: ObservableObject {
         }
 
         filteredApps = result
+    }
+
+    private func applyBrewFilter() {
+        var result = brewPackages
+
+        if brewFilter == .leaves {
+            result = result.filter { $0.isLeaf }
+        }
+
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.description.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+
+        switch sortOrder {
+        case .name:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .size:
+            result.sort { $0.size > $1.size }
+        }
+
+        filteredBrewPackages = result
     }
 }
