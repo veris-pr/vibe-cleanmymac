@@ -17,26 +17,26 @@ OpenCMM is a free, open-source alternative to CleanMyMac. It's a native macOS ap
 
 ## Features
 
-### 🧹 Sweep — Free up disk space
-Scans and removes system caches, user caches, browser data, logs, Xcode artifacts, and trash. Per-item selection with confirmation dialogs.
+### 🧹 Sweep — Deep cleaning across 12 categories
+Scans and removes system caches, user caches, browser data, app-specific caches (23 apps), developer tool caches (23 tools), system & user logs, crash reports, Xcode artifacts (simulators, derived data, device logs, build products, doc cache), mail downloads, old macOS installers, and trash. Per-item selection with size display and confirmation dialogs. Safety guards prevent removing active macOS installers or recent mail downloads.
 
 ### 🛡️ Security — Detect threats and audit your system
 Deep malware scanning powered by **ClamAV** (millions of signatures). System auditing via **osquery** — launch items, listening ports, browser extensions, firewall and SIP status. Falls back to pattern-based detection when tools aren't installed.
 
-### ⚡ Boost — Manage startup items
-View and manage Launch Agents and Launch Daemons. Enable or disable startup items that slow down your boot. Basic system info (hostname, macOS version, uptime).
+### ⚡ Boost — Monitor, optimize, and tune your Mac
+Live Apple Silicon performance monitoring via **macmon** (CPU/GPU usage, power, thermals). System health scoring via **Mole**. 19 native optimization tasks including: rebuild launch services, vacuum app databases, clean broken launch agents, fix preferences, clear quarantine history, flush DNS, repair disk permissions, periodic maintenance, Spotlight optimization, notification/CoreDuet database cleanup, font cache rebuild, and more. Falls back to native optimizations when Mole isn't installed. Startup item management (Launch Agents/Daemons).
 
 ### 🔄 Updates — Keep your apps current
 Homebrew formula and cask updates plus **Mac App Store** updates via **mas**. Update individual apps or all at once.
 
-### 📦 Uninstaller — Completely remove apps
-Discovers all installed applications, scans 9 leftover locations (App Support, Caches, Preferences, Logs, Containers, Group Containers, Crash Reports, Saved State, HTTP Storages), and removes everything cleanly.
+### 📦 Uninstaller — Completely remove apps and packages
+Discovers all installed applications and Homebrew packages. Apps: scans 9 leftover locations (App Support, Caches, Preferences, Logs, Containers, Crash Reports, Saved State, Launch Items) and removes everything cleanly. Brew packages: full detail view with navigable dependency tree — see what each package depends on and what depends on it, with clickable navigation into any dependency.
 
 ### 🔍 Duplicates — Find and remove clutter
 Fast duplicate detection via **fclones**. Similar images, videos, and music via **czkawka**. Large file finder. Temp file cleanup. Interactive "keep" selection.
 
 ### 🗺️ Disk Map — See what's taking up space
-Visual disk usage tree powered by **gdu**. Expandable directories showing size, percentage, and bar visualization.
+Visual disk usage tree with native FileManager analysis. Expandable directories showing size, percentage, and bar visualization. Optional **gdu** integration for faster scanning.
 
 ### ✨ Overview — One scan, four modules
 Run Sweep, Security, Updates, and Duplicates in parallel with one click. Get a health score and tappable summary cards.
@@ -46,7 +46,7 @@ Quick access from the menu bar — see last scan results, run a quick scan, or o
 
 ## Tool Integrations
 
-All CLI tools are **optional**. Modules work without them (with graceful fallbacks) and offer one-click Homebrew installation from within the app.
+All CLI tools are **optional**. Modules work without them (with graceful fallbacks) and offer one-click Homebrew installation from within the app. Each module shows dependency status with version info.
 
 | Tool | Module | Purpose |
 |------|--------|---------|
@@ -55,7 +55,9 @@ All CLI tools are **optional**. Modules work without them (with graceful fallbac
 | [mas](https://github.com/mas-cli/mas) | Updates | Mac App Store CLI |
 | [fclones](https://github.com/pkolaczk/fclones) | Duplicates | High-performance duplicate finder |
 | [czkawka](https://github.com/qarmin/czkawka) | Duplicates | Similar images/videos/music finder |
-| [gdu](https://github.com/dundee/gdu) | Disk Map | Fast disk usage analyzer |
+| [gdu](https://github.com/dundee/gdu) | Disk Map | Fast disk usage analyzer (binary: `gdu-go`) |
+| [macmon](https://github.com/vladkens/macmon) | Boost | Sudoless Apple Silicon performance monitor |
+| [Mole](https://github.com/tw93/mole) | Boost | System optimizer — clean, optimize, and analyze |
 
 ## Installation
 

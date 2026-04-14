@@ -82,12 +82,66 @@ Each returns a `ScanOutput` enum. Progress updates as each completes. Results ar
 | `.update` | Updates | UpdateViewModel | UpdateService, MasService | mas |
 | `.uninstall` | Uninstaller | UninstallViewModel | UninstallService | None |
 | `.declutter` | Duplicates | DeclutterViewModel | DuplicateFinderService, CzkawkaService | fclones, czkawka |
-| `.spaceLens` | Disk Map | SpaceLensViewModel | SpaceLensService | gdu |
+| `.spaceLens` | Disk Map | SpaceLensViewModel | SpaceLensService | gdu (binary: `gdu-go`) |
 | `.settings` | Settings | SettingsViewModel | DependencyManager | — |
+
+### CleaningService — 12 Scan Categories
+
+The `scan()` method runs 12 sub-scanners:
+
+| Method | Category | Notes |
+|--------|----------|-------|
+| `scanSystemCaches()` | systemCache | `/Library/Caches/` |
+| `scanUserCaches()` | userCache | `~/Library/Caches/` |
+| `scanBrowserCaches()` | browserCache | Safari, Chrome, Firefox, Edge, Brave, Arc, Opera, Vivaldi |
+| `scanAppCaches()` | appCache | 23 app-specific paths (Spotify, Slack, Discord, Teams, etc.) |
+| `scanDevCaches()` | devCache | 23 dev tool paths (npm, pip, cargo, go, gradle, cocoapods, etc.) |
+| `scanSystemLogs()` | systemLogs | `/Library/Logs/`, `/var/log/` |
+| `scanUserLogs()` | userLogs | `~/Library/Logs/` |
+| `scanCrashReports()` | crashReports | `~/Library/Logs/DiagnosticReports/`, system crash reports |
+| `scanXcodeData()` | xcodeData | DerivedData, archives, simulators (temp/logs), device logs, build products, doc cache |
+| `scanMailDownloads()` | mailDownloads | Only files >30 days old |
+| `scanMacOSInstallers()` | macOSInstaller | Skip if running, current version, or <14 days old |
+| `scanTrash()` | trash | `~/.Trash/` |
+
+### OptimizationService — 19 Tasks
+
+Boost runs all 19 tasks sequentially via `optimizeNative()` (or delegates to Mole when installed):
+
+**Non-privileged (16):**
+`rebuildLaunchServices`, `refreshQuickLookCaches`, `clearQuarantineHistory`, `cleanBrokenLaunchAgents`, `fixBrokenPreferences`, `refreshDock`, `cleanOldSavedStates`, `preventNetworkDSStore`, `vacuumAppDatabases`, `rebuildFontCache`, `repairSharedFileLists`, `cleanNotificationDatabase`, `cleanCoreDuetDatabase`, `optimizeSpotlightIndex`
+
+**Privileged (via macOS auth dialog, 5):**
+`flushDNSCache`, `runPeriodicMaintenance`, `repairDiskPermissions`, `purgeMemory`, `flushNetworkStack`
+
+### Uninstaller — Brew Package Detail View
+
+Brew packages navigate into a full detail view (like software does) showing:
+- Package header with version badge and size
+- Info badges (installed on request / as dependency, leaf status, dep/dependent counts)
+- Cellar install path
+- Clickable dependency rows — navigate into any dependency's detail view
+- Clickable dependent rows
+- Uninstall action bar with dependent warning
 
 ## Dependency Management
 
-**`DependencyManager`** is a Swift `actor` singleton that manages all external CLI tools.
+**`DependencyManager`** is a Swift `actor` singleton that manages all 8 external CLI tools.
+
+**Managed tools:**
+
+| Tool ID | Name | Brew Package | Binary Name | Cask? |
+|---------|------|-------------|-------------|-------|
+| `clamav` | ClamAV | `clamav` | `clamscan` | No |
+| `fclones` | fclones | `fclones` | `fclones` | No |
+| `osquery` | osquery | `osquery` | `osqueryi` | Yes |
+| `mas` | mas | `mas` | `mas` | No |
+| `czkawka` | czkawka | `czkawka` | `czkawka_cli` | No |
+| `macmon` | macmon | `macmon` | `macmon` | No |
+| `mole` | Mole | `mole` | `mo` | No |
+| `gdu` | gdu | `gdu` | `gdu-go` | No |
+
+**Key detail:** The `execName(for:)` method maps tool IDs to actual binary names. Five tools have different binary names than their IDs — always use this mapping, never hardcode binary names.
 
 - **Detection:** Checks known paths (`/opt/homebrew/bin/`, `/usr/local/bin/`, `/usr/bin/`), falls back to `which`.
 - **Install source tracking:** `notInstalled | managedByUs | homebrew | direct` — distinguishes what OpenCMM installed vs. what the user had.
@@ -95,7 +149,7 @@ Each returns a `ScanOutput` enum. Progress updates as each completes. Results ar
 - **Homebrew install:** Writes official brew.sh installer to a `.command` file, opens it in Terminal. User has full visibility. App polls for detection.
 - **Tool install:** `brew install [--cask] <package>`, then `brew pin` to prevent auto-upgrade.
 - **Uninstall:** Only removes tools marked `managedByUs`. Unpins, then `brew uninstall`.
-- **Graceful degradation:** Every tool is optional. Services have native Swift fallbacks (SHA256 dedup without fclones, FileManager-based disk analysis without gdu).
+- **Graceful degradation:** Every tool is optional. Services have native Swift fallbacks (SHA256 dedup without fclones, FileManager-based disk analysis without gdu, native optimization without Mole).
 
 ## Principles
 
@@ -222,7 +276,7 @@ Don't auto-trigger scans, installs, or network requests when a user navigates to
 
 ### ❌ Features That Require Root Access
 
-CPU performance counters, hardware sensors, memory purge (`purge` command) — these all require sudo. Features requiring root are a liability in an unsigned app. They trigger permission prompts, require password management UI, and erode user trust. If it needs root, cut it.
+CPU performance counters, hardware sensors — these require sudo and are not appropriate for this app. For tasks like DNS flush, periodic maintenance, and disk permissions, use `do shell script "..." with administrator privileges` which shows the standard macOS auth dialog. Never use raw `sudo` (no TTY in GUI apps).
 
 ## Build & Distribution
 
@@ -249,6 +303,16 @@ OpenCMM.app/Contents/
 - `com.apple.security.app-sandbox` → `false` (required for shell access)
 - `com.apple.security.files.user-selected.read-write` → `true`
 
+## UX Principles
+
+### No Auto-Scan on Tab Load
+
+No module auto-triggers scans, installs, or network requests when the user navigates to it. Each tab shows dependency status and an empty state with a manual "Scan" button. This prevents surprise permission prompts, unexpected network usage, and UI hangs.
+
+### Consistent Button Labels
+
+All scan buttons use "Scan" (not "Start Scan"). After scanning, the button changes to "Rescan" where applicable. Action buttons use their specific verb (e.g., "Optimize", "Uninstall", "Clean").
+
 ## File Reference
 
 | File | Purpose |
@@ -256,11 +320,14 @@ OpenCMM.app/Contents/
 | `App/AppState.swift` | Central state — owns ScanStore + all VMs, wires everything |
 | `App/OpenCMMApp.swift` | @main entry — WindowGroup + MenuBarExtra |
 | `Services/ScanStore.swift` | Central @Published state for all scan results |
-| `Services/DependencyManager.swift` | Tool detection, Homebrew install, manifest tracking |
-| `Services/MoleService.swift` | Wraps Mole CLI (`mo status --json`, `mo optimize`, `mo analyze --json`) |
-| `Services/OptimizationService.swift` | Native system optimization — 11 tasks (8 non-privileged + 3 privileged) |
+| `Services/DependencyManager.swift` | Tool detection, Homebrew install, manifest tracking (8 tools) |
+| `Services/CleaningService.swift` | 12 scan categories — system/user/browser/app/dev caches, logs, crash reports, Xcode, mail, macOS installers, trash |
+| `Services/OptimizationService.swift` | 19 native optimization tasks (16 non-privileged + 5 privileged) |
+| `Services/MoleService.swift` | Wraps Mole CLI — `mo status --json`, `mo optimize`, `mo analyze --json` |
+| `Services/MacMonService.swift` | Apple Silicon metrics via `macmon pipe` — CPU/GPU usage, power, thermals |
+| `Services/UninstallService.swift` | App discovery, leftover scanning, brew package listing, uninstall |
 | `Utilities/ShellExecutor.swift` | All shell execution — PATH injection, pipe safety, quoting |
 | `Utilities/AppConstants.swift` | Health thresholds, file size limits, timing, version |
 | `Utilities/FileUtils.swift` | Directory size, file ops, move to trash |
 | `Components/Theme.swift` | Design tokens — fonts, colors, spacing, card/badge styles |
-| `Components/ViewHelpers.swift` | moduleHeader, EmptyStateView, DependencyBanner, ErrorBanner |
+| `Components/ViewHelpers.swift` | moduleHeader, EmptyStateView, DependencyBanner, ErrorBanner, footerBar, ScanButton |
