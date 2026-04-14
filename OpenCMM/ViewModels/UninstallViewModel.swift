@@ -24,7 +24,7 @@ class UninstallViewModel: ObservableObject {
     @Published var selectedBrewIds: Set<String> = []
     @Published var showBrewConfirmation = false
     @Published var brewFilter: BrewFilter = .leaves
-    @Published var expandedBrewIds: Set<String> = []
+    @Published var selectedBrewPackage: BrewPackage?
 
     private let service = UninstallService()
 
@@ -80,16 +80,24 @@ class UninstallViewModel: ObservableObject {
         selectedBrewIds.contains(pkg.id)
     }
 
-    func toggleBrewExpanded(_ pkg: BrewPackage) {
-        if expandedBrewIds.contains(pkg.id) {
-            expandedBrewIds.remove(pkg.id)
-        } else {
-            expandedBrewIds.insert(pkg.id)
-        }
+    func selectBrewPackage(_ pkg: BrewPackage) {
+        selectedBrewPackage = pkg
     }
 
-    func isBrewExpanded(_ pkg: BrewPackage) -> Bool {
-        expandedBrewIds.contains(pkg.id)
+    func deselectBrewPackage() {
+        selectedBrewPackage = nil
+    }
+
+    func brewPackageByName(_ name: String) -> BrewPackage? {
+        brewPackages.first { $0.name == name }
+    }
+
+    func cellarPath(for pkg: BrewPackage) -> String? {
+        let paths = [
+            "/opt/homebrew/Cellar/\(pkg.name)/\(pkg.version)",
+            "/usr/local/Cellar/\(pkg.name)/\(pkg.version)"
+        ]
+        return paths.first { FileManager.default.fileExists(atPath: $0) }
     }
 
     func loadApps() async {
